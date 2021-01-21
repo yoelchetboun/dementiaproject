@@ -1,0 +1,11 @@
+# Ici uniquement les données au format csv (données de petites tailles)
+
+# Sources : https://central.xnat.org/app/template/XDATScreen_report_xnat_projectData.vm/search_element/xnat:projectData/search_field/xnat:projectData.ID#/search_value/OASIS3
+
+
+# Descriptions des fichiers
+
+- subjects : correspond à des données génériques sur le patient.
+- mri_sessions : correspond aux sessions de scanners réalisés. L'ID va servir à récupérer les images correspondantes. Dans l'ID "_d0000" correspond au jour depuis la première prise en charge .
+- freeserfer_data : correspond à des données plates issues des sessions de scanner via le logiciel "FreeSurfer". Je n'ai pas extrait toutes les données présentes.
+- adrc_clinical : correspond aux données cliniques
