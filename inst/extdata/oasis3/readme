@@ -9,3 +9,8 @@
 - mri_sessions : correspond aux sessions de scanners réalisés. L'ID va servir à récupérer les images correspondantes. Dans l'ID "_d0000" correspond au jour depuis la première prise en charge .
 - freeserfer_data : correspond à des données plates issues des sessions de scanner via le logiciel "FreeSurfer". Je n'ai pas extrait toutes les données présentes.
 - adrc_clinical : correspond aux données cliniques
+
+# Taille des fichiers après tests
+
+- récupération des scans pour le patient 0001 => 4 sessions de scans sur T1w et T2w = 95mo
+- 2168 sessions à récup = 205 go de data
