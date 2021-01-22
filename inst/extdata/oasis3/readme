@@ -13,4 +13,10 @@
 # Taille des fichiers après tests
 
 - récupération des scans pour le patient 0001 => 4 sessions de scans sur T1w et T2w = 95mo
-- 2168 sessions à récup = 205 go de data
+- 2168 sessions à récup = 205 go de data (2117 T1w + 1985 T2w d'après la doc)
+
+#Qu'est ce qu'on récupère ?
+
+- un fichier nifti (BIDS format)
+- un fichier json comprenant des méta-données (modele du scanner, "flip angle", "TR", "TE")
+

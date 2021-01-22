@@ -18,11 +18,13 @@ str(mri_data)
 #                        Without this argument, all scans for the given experiment_id will be downloaded.
 
 mri_subject1 <- mri_data[Subject  == "OAS30001", .(MR.ID)]
-write.table(mri_subject1, file = file.path(path_root, "inst/extdata/oasis3/mri_subject1.csv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
-input_file <- file.path(path_root, "inst/extdata/oasis3/mri_subject1.csv")
-path_dest_data <- "~/CEPE/dementiaproject/oasis3/"
+mri_subjects <- mri_data[1:1000, .(MR.ID)]
+
+write.table(mri_subjects, file = file.path(path_root, "inst/extdata/oasis3/mri_subjects.csv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
+input_file <- file.path(path_root, "inst/extdata/oasis3/mri_subjects.csv")
+path_dest_data <- "/srv/OASIS_DATA/oasis3/"
 xnat_central_username <- "chetboun"
 scan_type <- "T1w"
 cmd <- paste(file.path(path_root, "inst/xnat_scripts/oasis-scripts-master/download_scans/download_oasis_scans.sh"), input_file, path_dest_data, xnat_central_username, scan_type)
 
-#cmd à lancer directement dans le terminal car demande de mdp obligatoire
+#cmd à lancer directement dans le terminal car demande de mdp obligatoire + le script ne marche pas si on est pas dans le dossier ou il se lance
