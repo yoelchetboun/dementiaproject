@@ -10,7 +10,12 @@ from scipy import stats
 import shutil
 import random
 from sklearn.metrics import confusion_matrix
+import time
 
+t = time.localtime()
+current_time = time.strftime("%H:%M:%S", t)
+print("Début de calcul")
+print(current_time)
 
 def dataset_basic_info(generator, name):
     print('The ' + name + ' data set includes ' + str(generator.samples) + ' samples.')
@@ -225,7 +230,7 @@ conv_activation_function       = ['relu']*conv_layers
 conv_padding                   = ['valid']*conv_layers
 conv_pooling_type              = ['max']*conv_layers
 conv_pooling_shape             = [[2,2]]*conv_layers
-augment_data                   = True
+augment_data                   = False
 rotation_range                 = 0.1
 width_shift_range              = 0.1
 height_shift_range             = 0.1
@@ -262,9 +267,9 @@ vgg_n_epochs                   = 40
 vgg_validation_steps           = 50
 
 labels = ['MildDemented', 'ModerateDemented', 'NonDemented', 'VeryMildDemented']
-new_training_path = "../files/alzheimers-dataset-4-class-of-images/dataset/training_set/"
-new_validation_path = "../files/alzheimers-dataset-4-class-of-images/dataset/validation_set/"
-new_test_path = "../files/alzheimers-dataset-4-class-of-images/dataset/test_set/"
+new_training_path = "/srv/OASIS_DATA/scans_base/dataset/training_set/"
+new_validation_path = "/srv/OASIS_DATA/scans_base/dataset/validation_set/"
+new_test_path = "/srv/OASIS_DATA/scans_base/dataset/test_set/"
 shutil.rmtree(new_training_path, ignore_errors=True)
 shutil.rmtree(new_validation_path, ignore_errors=True)
 shutil.rmtree(new_test_path, ignore_errors=True)
@@ -346,3 +351,12 @@ model.load_weights(filepath='.best_fit.hdf5')
 analyze_performances(hst, n_epochs)
 
 model_evaluation(model, test_generator)
+
+# Save the entire model as a SavedModel.
+model.save('saved_model/my_model')
+
+
+t = time.localtime()
+current_time = time.strftime("%H:%M:%S", t)
+print("Fin de calcul")
+print(current_time)

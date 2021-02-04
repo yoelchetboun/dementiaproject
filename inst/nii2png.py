@@ -56,7 +56,7 @@ def main(argv):
     # else:
     #     print('You must choose either y or n. Quitting...')
     #     sys.exit()
-    ask_rotate_num = 270
+    ask_rotate_num = 90
 
     # if 4D image inputted
     if len(image_array.shape) == 4:
