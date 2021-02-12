@@ -94,6 +94,36 @@ ggplot(adrc_data[, .(dementia , mmse )], aes(fill = dementia, x= mmse)) + geom_d
 mri_data <- read.csv2(file.path(path_root, "inst/extdata/oasis3/mr_sessions_data_full.csv"), header = TRUE, sep = ",")
 setDT(mri_data)
 
+#comment matcher la visite adrc et le free surfer?
+mri_data[Subject == "OAS30001"]
+adrc_data[Subject == "OAS30001"]
+
+mri_data[, nb_days_since_entry := sub(pattern = "d", replacement = "", strsplit(MR.ID, split = "_")[[1]][[3]]), by = "MR.ID"]
+mri_data[, nb_days_since_entry := as.numeric(nb_days_since_entry)]
+
+# pour chaque mri session on recup l'ID de la adrc visit qui suit
+mri_data[, mri_following_adrc_session := adrc_data[Subject == .SD$Subject & nb_days_since_entry >= .SD$nb_days_since_entry]$ADRC_ADRCCLINICALDATA.ID[1], by = "MR.ID"]
+mri_data[, mri_previous_adrc_session := tail(adrc_data[Subject == .SD$Subject & nb_days_since_entry <= .SD$nb_days_since_entry]$ADRC_ADRCCLINICALDATA.ID, 1), by = "MR.ID"]
+
+mri_adrc_join <- copy(mri_data[, .(MR.ID, Subject, nb_days_since_entry, mri_following_adrc_session, mri_previous_adrc_session)])
+mri_adrc_join <- merge(mri_adrc_join, adrc_data[, .(ADRC_ADRCCLINICALDATA.ID, cdr)], by.x = "mri_following_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID", all.x= TRUE)
+setnames(mri_adrc_join, "cdr", "cdr_following_adrc")
+mri_adrc_join <- merge(mri_adrc_join, adrc_data[, .(ADRC_ADRCCLINICALDATA.ID, cdr)], by.x = "mri_previous_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID", all.x= TRUE)
+setnames(mri_adrc_join, "cdr", "cdr_previous_adrc")
+mri_adrc_join[is.na(mri_following_adrc_session), ":=" (mri_following_adrc_session = mri_previous_adrc_session,
+                                                       cdr_following_adrc = cdr_previous_adrc)]
+
+mri_adrc_join[, ":=" (nb_days_following_adrc = as.numeric(sub(pattern = "d", replacement = "", strsplit(mri_following_adrc_session, split = "_")[[1]][[3]])),
+                      nb_days_previous_adrc = as.numeric(sub(pattern = "d", replacement = "", strsplit(mri_previous_adrc_session, split = "_")[[1]][[3]]))), by= MR.ID]
+mri_adrc_join[, ":=" (nb_days_btw_mri_fol_adrc = nb_days_following_adrc - nb_days_since_entry,
+                      nb_days_btw_mri_prev_adrc = nb_days_since_entry - nb_days_previous_adrc), by= MR.ID]
+
+mri_adrc_join[nb_days_btw_mri_fol_adrc <= nb_days_btw_mri_prev_adrc, adcr_ref := "following"]
+mri_adrc_join[nb_days_btw_mri_fol_adrc > nb_days_btw_mri_prev_adrc, adcr_ref := "previous"]
+mri_adrc_join[adcr_ref == "following", cdr_ref := cdr_following_adrc]
+mri_adrc_join[adcr_ref == "previous", cdr_ref := cdr_previous_adrc]
+
+#save(mri_adrc_join, file =  file.path(path_root, "inst/extdata/oasis3/mri_adrc_join.Rdata"))
 
 
 
@@ -113,23 +143,20 @@ fs_data <- fs_data[,which(unlist(lapply(fs_data, function(x)!all(is.na(x))))),wi
 # CorticalWhiteMatterVol
 # SupraTentorialVol
 
-#comment matcher la visite adrc et le free surfer?
-mri_data[Subject == "OAS30001"]
-adrc_data[Subject == "OAS30001"]
+# mri_adrc_join <- merge(mri_data, adrc_data, by.x = "mri_following_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID")
+# mri_adrc_join <- merge(mri_adrc_join, fs_data, by = "Session")
+#
+# melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(cdr, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("cdr"))
+# ggplot(melt_mri_adrc_join, aes(fill = cdr, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
+#   scale_fill_discrete(name = "CDR") + labs(x = "Clinical Dementia Rating [0 à 3]", y = "Volume") + theme(axis.text.x = element_blank())
+#
+#
+# melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(dementia, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("dementia"))
+# ggplot(melt_mri_adrc_join, aes(fill = dementia, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
+#   scale_fill_discrete(name = "", labels = c("Non Dément", "Dément")) + labs(x = "", y = "Volume") + theme(axis.text.x = element_blank())
+#
+# mri_adrc_join <- mri_adrc_join[, .(MR.ID, mri_following_adrc_session, cdr, nb_days_since_entry.x, nb_days_since_entry.y)]
+# setnames(mri_adrc_join, c("nb_days_since_entry.x",  "nb_days_since_entry.y"), c("nb_days_entry_mri",  "nb_days_entry_next_adrc"))
+# mri_adrc_join[, nb_days_mri_adrc := nb_days_entry_next_adrc - nb_days_entry_mri]
 
-mri_data[, nb_days_since_entry := sub(pattern = "d", replacement = "", strsplit(MR.ID, split = "_")[[1]][[3]]), by = "MR.ID"]
-mri_data[, nb_days_since_entry := as.numeric(nb_days_since_entry)]
 
-# pour chaque mri session on recup l'ID de la adrc visit qui suit
-mri_data[, mri_following_adrc_session := adrc_data[Subject == .SD$Subject & nb_days_since_entry >= .SD$nb_days_since_entry]$ADRC_ADRCCLINICALDATA.ID[1], by = "MR.ID"]
-mri_adrc_join <- merge(mri_data, adrc_data, by.x = "mri_following_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID")
-mri_adrc_join <- merge(mri_adrc_join, fs_data, by = "Session")
-
-melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(cdr, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("cdr"))
-ggplot(melt_mri_adrc_join, aes(fill = cdr, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
-  scale_fill_discrete(name = "CDR") + labs(x = "Clinical Dementia Rating [0 à 3]", y = "Volume") + theme(axis.text.x = element_blank())
-
-
-melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(dementia, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("dementia"))
-ggplot(melt_mri_adrc_join, aes(fill = dementia, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
-  scale_fill_discrete(name = "", labels = c("Non Dément", "Dément")) + labs(x = "", y = "Volume") + theme(axis.text.x = element_blank())
