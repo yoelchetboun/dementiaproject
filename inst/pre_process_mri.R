@@ -1,5 +1,5 @@
 #install.packages("BiocManager")
-#install.packages("EBImahe") #sudo apt-get install libfftw3-dev pour installer la library fftw necessaire
+#install.packages("EBImage") #sudo apt-get install libfftw3-dev pour installer la library fftw necessaire
 #BiocManager::install("EBImage")
 
 library(keras)
@@ -23,6 +23,7 @@ dataset <- data.table(name_old = basename(list_png))
 dataset[, subject := sub(pattern = "sub-", replacement = "", strsplit(name_old, split = "_")[[1]][[1]]), by = name_old]
 dataset[, nb_days_entry_mri := as.integer(sub(pattern = "ses-d", replacement = "", strsplit(name_old, split = "_")[[1]][[2]])), by = name_old]
 dataset[, MR.ID := paste0(subject, "_MR_", sub(pattern = "ses-", replacement = "", strsplit(name_old, split = "_")[[1]][[2]])), by = name_old]
+
 mri_adrc_join <- loadRData(file.path(path_root, "inst/extdata/oasis3/mri_adrc_join.Rdata"))
 dataset <- merge(dataset, mri_adrc_join, by = "MR.ID", all.x = TRUE)
 
@@ -97,10 +98,12 @@ dataset[cdr_ref != "0.0", dementia := TRUE]
 dataset[cdr_ref == "0.0", dementia := FALSE]
 
 #save(dataset, file =  file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
-library(cronR)
-myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/extract_feature.R"
-cmd <- cron_rscript(myscript)
-cron_add(cmd, frequency = '07 22 11 02 *', id = 'cnn_launch', description = 'cnn_launch')
+
+# lancer un script en arrière plan sous linux :
+# library(cronR)
+# myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/extract_feature.R"
+# cmd <- cron_rscript(myscript)
+# cron_add(cmd, frequency = '07 22 11 02 *', id = 'cnn_launch', description = 'cnn_launch')
 
 
 

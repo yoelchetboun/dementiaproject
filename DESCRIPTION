@@ -2,10 +2,12 @@ Package: dementiaproject
 Title: Dementia Project
 Version: 0.0.9
 Authors@R: c(person("Yoel", "Chetboun", email = "chetbo@wni.com", role = c("cre")), person("Klara", "Vinceneux", email = "klara.vinceneux@gmx.fr", role = c("aut")))
-Description: The aim of this project is to predict dementia and Alzheimer's.
+Description: The aim of this project is to predict dementia and Alzheimer's disease.
 Depends: R (>= 3.5.0)
 License: GPL-3
 Encoding: UTF-8
 LazyData: true
 RoxygenNote: 7.1.1
 Imports:
+    pbapply,
+    EBImage
