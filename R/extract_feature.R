@@ -7,7 +7,7 @@
 #' @param data_ref Table de reference du dataset
 #'
 #' @import pbapply
-#' @import EBImage
+#' @import data.table
 #'
 #' @return Retourne une liste (X = feature_matrix, y = y)) si lalelsExist = T ou uniquement feature_matrix si lalelsExist = F
 #' @export

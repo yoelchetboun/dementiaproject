@@ -100,10 +100,14 @@ dataset[cdr_ref == "0.0", dementia := FALSE]
 #save(dataset, file =  file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
 
 # lancer un script en arrière plan sous linux :
-# library(cronR)
-# myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/extract_feature.R"
-# cmd <- cron_rscript(myscript)
-# cron_add(cmd, frequency = '07 22 11 02 *', id = 'cnn_launch', description = 'cnn_launch')
+rm(list=ls(all.names = TRUE))
+gc(reset=TRUE, full = TRUE)
+library(cronR)
+myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/main_cnn.R"
+file.remove("/home/chetbo/GENERIC/dementiaproject/inst/main_cnn.log")
+cmd <- cron_rscript(myscript)
+cron_rm(id = "cnn_launch")
+cron_add(cmd, frequency = '10 12 16 02 *', id = 'cnn_launch', description = 'cnn_launch')
 
 
 

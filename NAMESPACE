@@ -3,5 +3,7 @@
 export(extract_feature)
 export(feature_list)
 export(loadRData)
-import(EBImage)
+import(data.table)
 import(pbapply)
+importFrom(EBImage,readImage)
+importFrom(EBImage,resize)

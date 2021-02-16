@@ -5,7 +5,7 @@
 #' @param height Hauteur cible
 #'
 #' @import pbapply
-#' @import EBImage
+#' @importFrom EBImage readImage resize
 #'
 #' @return retourne un vecteur
 #' @export

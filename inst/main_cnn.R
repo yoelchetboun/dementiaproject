@@ -10,21 +10,38 @@ library(pbapply)
 library(purrr)
 library(dementiaproject)
 
-#image size
-width_target <- 254
-height_target <- 254
 path_data <- "/srv/OASIS_DATA/"
 path_root <- "~/GENERIC/dementiaproject/"
 
-load(file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
+#Variables
+width_target <- 254
+height_target <- 254
+loss_function <- "sparse_categorical_crossentropy"
+optimizer_var <- "adam"
+metrics_var <- "accuracy"
+nb_epoch <- 40
+batch_size_var <- 40
+val_split <- 0.2
+test_split <- 0.1
 
 # pour test
-dataset <- rbind(dataset[dementia == TRUE],  dataset[dementia == FALSE][1:2400])
+dataset <- loadRData(file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
 
-#dataset dementia 2400 TRUE / 8700 FALSE (~20%)
-dataset$test_set <- sample(1:10, nrow(dataset), replace = TRUE)
+#on selectionne 10% de l'échantillon pour jeu de test (avant le sous echantillonage pour garder la meme proportion)
+dataset$test_set <- sample(1:(test_split*100), nrow(dataset), replace = TRUE)
 dataset[test_set == 1, set := "test"]
 dataset[test_set != 1, set := "train"]
+data_test <- copy(dataset[set == "test"])
+print(paste0("Nombre d'images 'dementia' dans le jeu test : ", nrow(data_test[dementia == "TRUE"])))
+print(paste0("Nombre d'images 'non dementia' dans le jeu test : ", nrow(data_test[dementia == "FALSE"])))
+
+#on rééquilibre les classes pour le train
+data_train <- copy(dataset[set == "train"])
+nb_dementia_train <- nrow(data_train[dementia == "TRUE"])
+data_train_nondement <- copy(data_train[dementia == "FALSE"][sample(nrow(data_train[dementia == "FALSE"]), nb_dementia_train),])
+data_train <- rbind(data_train[dementia == TRUE],  data_train_nondement)
+print(paste0("Nombre d'images 'dementia' dans le jeu train : ", nrow(data_train[dementia == "TRUE"])))
+print(paste0("Nombre d'images 'non dementia' dans le jeu train : ", nrow(data_train[dementia == "FALSE"])))
 
 
 #on copie les images dans train/test
@@ -35,18 +52,23 @@ path_dir_test <- file.path(path_data, "dataset_processed_test")
 file.remove(list.files(path_dir_train, pattern = ".png", full.names = TRUE))
 file.remove(list.files(path_dir_test, pattern = ".png", full.names = TRUE))
 
-map(seq(1,length(dataset$set), 1), function(x) {
-  print(paste0("Traitement ", x, "/", length(dataset$set)))
-  if(dataset[x]$set == "train") {
-    file.copy(from = file.path(path_data, "dataset_processed", dataset[x]$new_name), to = path_dir_train)
-  } else {
-    file.copy(from = file.path(path_data, "dataset_processed", dataset[x]$new_name), to = path_dir_test)
-
-  }
+print("Copie des fichiers de la partie train")
+map(seq(1,nrow(data_train), 1), function(x) {
+  print(paste0("Copie train : ", x, "/", nrow(data_train)))
+  file.copy(from = file.path(path_data, "dataset_processed", data_train[x]$new_name), to = path_dir_train)
 })
 
+print("Copie des fichiers de la partie test")
+map(seq(1,nrow(data_test), 1), function(x) {
+  print(paste0("Copie test : ", x, "/", nrow(data_test)))
+  file.copy(from = file.path(path_data, "dataset_processed", data_test[x]$new_name), to = path_dir_test)
+})
 
-trainData  <- extract_feature(path_dir = path_dir_train, data_ref = dataset, width = width_target, height = height_target, labelsExist = TRUE)
+rm(data_train_nondement)
+data_distrib <- rbind(data_train, data_test)
+
+print("Début extraction des feature")
+trainData  <- dementiaproject::extract_feature(path_dir = path_dir_train, data_ref = dataset, width = width_target, height = height_target, labelsExist = TRUE)
 print(paste0("Fin extract feature"))
 
 #check trainData
@@ -62,10 +84,20 @@ print(paste0("Fin extract feature"))
 print(paste0("Conversion en array"))
 
 train_array <- t(trainData$X)
-dim(train_array) <- c(254, 254, nrow(trainData$X), 1)
+dim(train_array) <- c(width_target, height_target, nrow(trainData$X), 1)
 train_array <- aperm(train_array, c(3,1,2,4)) # Reorder dimensions
 train_array_y <- as.numeric(as.logical(trainData$y))
 rm(trainData)
+
+#afin de gagner en mémoire on redémare la session R
+gc(reset=TRUE, full = TRUE)
+
+# Ne marche pas en batch
+# e <- as.environment("tools:rstudio")
+# e$.rs.restartR()
+# #est ce que la session est toujours active ?
+# print("Restart ok!")
+# print(paste0("premier element de train_array_x : ", train_array[1]))
 
 
 # Check brain again
@@ -76,7 +108,7 @@ rm(trainData)
 
 model <- keras_model_sequential() %>%
   layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = "relu",
-                input_shape = c(254,254,1)) %>% #format image 256x256
+                input_shape = c(width_target,height_target,1)) %>% #format image width_target x height_target
   layer_max_pooling_2d(pool_size = c(2,2)) %>%
   layer_conv_2d(filters = 64, kernel_size = c(3,3), activation = "relu") %>%
   layer_max_pooling_2d(pool_size = c(2,2)) %>%
@@ -91,9 +123,9 @@ model <- keras_model_sequential() %>%
 summary(model)
 
 model %>% compile(
-  optimizer = "adam",
-  loss = "categorical_crossentropy", #sparse_categorical_crossentropy, accurary ?
-  metrics = "accuracy"
+  optimizer = optimizer_var,
+  loss = loss_function, #sparse_categorical_crossentropy, accurary ?
+  metrics = metrics_var
 )
 
 tik <- Sys.time()
@@ -102,19 +134,20 @@ print(paste0("Lancement de l'entrainement : ", tik))
 history <- model %>%
   fit(
     x = train_array, y = train_array_y,
-    epochs = 40, batch_size = 50,
-    validation_split = 0.2,
+    epochs = nb_epoch, batch_size = batch_size_var,
+    validation_split = val_split,
     verbose = 2 #jouer sur le learning rate
   )
 
-#save_model_hdf5(model, 'my_model.h5')
-print(paste0("Fin de l'entrainement : ", Sys.time()-tik))
+
+tok <- Sys.time()-tik
+print(paste0("Fin de l'entrainement : ", tok))
 
 
 # Compute probabilities and predictions on test set
 testData  <- extract_feature(path_dir = path_dir_test, data_ref = dataset, width = width_target, height = height_target, labelsExist = TRUE)
 test_array <- t(testData$X)
-dim(test_array) <- c(254, 254, nrow(testData$X), 1)
+dim(test_array) <- c(width_target, height_target, nrow(testData$X), 1)
 test_array <- aperm(test_array, c(3,1,2,4)) # Reorder dimensions
 test_array_y <- as.numeric(as.logical(testData$y))
 rm(testData)
@@ -125,6 +158,24 @@ probabilities <- predict_proba(model, test_array)
 resultat_test <- data.table()
 resultat_test$pred <- predictions
 resultat_test$obs <- test_array_y
+
+#matrice de confusion
+conf_matrix <- confusionMatrix(data = as.factor(resultat_test$pred), reference = as.factor(resultat_test$obs))
+
+summary_result <- data.table(width_target_img = width_target,
+                             height_target_img = height_target,
+                             loss_function = loss_function,
+                             optimizer = optimizer_var,
+                             metrics = metrics_var,
+                             nb_epoch = nb_epoch,
+                             batch = batch_size_var,
+                             val_split = val_split,
+                             nb_test_img = nrow(resultat_test),
+                             nb_train_img = length(train_array_y),
+                             good_classif_rate = nrow(resultat_test[pred == obs]) / nrow(resultat_test),
+                             sensitivity = conf_matrix$byClass["Sensitivity"],
+                             specificity = conf_matrix$byClass["Specificity"],
+                             time_train = tok)
 
 # # Visual inspection of 32 cases
 # set.seed(100)
@@ -142,13 +193,18 @@ resultat_test$obs <- test_array_y
 # }
 
 # Save model
-save(model, file = "model.RData")
-save(history, file = "history.Rdata")
-save(predictions, file = "predictions.Rdata")
-save(probabilities, file = "probabilities.Rdata")
-save(dataset, file = "dataset_distrib.Rdata")
-save(resultat_test, file = "resultat_test.Rdata")
+nb_dir <- length(list.dirs(file.path(path_data, "results"), recursive = FALSE)) + 1
+path_dir_result <- file.path(path_data, "results", paste0("results_", nb_dir))
+dir.create(path = path_dir_result)
 
+save(model, file = file.path(path_dir_result, "model.RData"))
+save(history, file = file.path(path_dir_result, "history.Rdata"))
+save(predictions, file = file.path(path_dir_result, "predictions.Rdata"))
+save(probabilities, file = file.path(path_dir_result, "probabilities.Rdata"))
+save(data_distrib, file = file.path(path_dir_result, "data_distrib.Rdata"))
+save(resultat_test, file = file.path(path_dir_result, "resultat_test.Rdata"))
+save(conf_matrix, file = file.path(path_dir_result, "conf_matrix.Rdata"))
+save(summary_result, file = file.path(path_dir_result, "summary_result.Rdata"))
 
 
 # model %>% compile(
