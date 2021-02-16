@@ -9,20 +9,63 @@ library(stringr)
 library(pbapply)
 library(purrr)
 library(dementiaproject)
+library(caret)
+library(tfruns)
 
 path_data <- "/srv/OASIS_DATA/"
 path_root <- "~/GENERIC/dementiaproject/"
 
+FLAGS <- flags(
+  flag_string("loss_function", "sparse_categorical_crossentropy"),
+  flag_string("optimizer_var", "adam"),
+  flag_numeric("learning_rate", 0.001),
+  flag_string("metrics_var", "accuracy"),
+  flag_integer("nb_epoch", 40),
+  flag_integer("batch_size_var", 40),
+  flag_numeric("val_split", 0.2),
+  flag_numeric("test_split", 0.1)
+)
+
 #Variables
 width_target <- 254
 height_target <- 254
-loss_function <- "sparse_categorical_crossentropy"
-optimizer_var <- "adam"
+
+loss_function <- FLAGS$loss_function
+# valeurs possibles
+# categorical_crossentropy => si plusieurs cat cible. We expect labels to be provided in a one_hot representation.
+# binary_crossentropy => si seulement deux cat cibles
+# sparse_categorical_crossentropy => If you want to provide labels as integers, please use SparseCategoricalCrossentropy loss. There should be # classes floating point values per feature
+if(FLAGS$optimizer_var == "adam") {
+  opt <- optimizer_adam(lr = FLAGS$learning_rate)
+}
+
+if(FLAGS$optimizer_var == "rmsprop") {
+  opt <- optimizer_rmsprop(lr = FLAGS$learning_rate)
+}
+
+if(FLAGS$optimizer_var == "adagrad") {
+  opt <- optimizer_adagrad(lr = FLAGS$learning_rate)
+}
+
+if(FLAGS$optimizer_var == "sgd") {
+  opt <- optimizer_sgd(lr = FLAGS$learning_rate)
+}
+
+#optimizer_var <- FLAGS$optimizer_var
+# valeurs possibles
+# adam  ou optimizer_adam(lr = 0.0001, decay = 1e-6) pour changer le lr
+# rmsprop ou optimizer_rmsprop(lr = 0.0001, decay = 1e-6)
+# adagrad ou optimizer_adagrad(lr = 0.01)
+# sgd : optimizer_sgd(lr = 0.01)
+
 metrics_var <- "accuracy"
-nb_epoch <- 40
-batch_size_var <- 40
-val_split <- 0.2
-test_split <- 0.1
+#categorical accuracy : "Calculates how often predictions matches one-hot labels."
+#SensitivityAtSpecificity : the sensitivity at a given specificity.
+
+nb_epoch <- FLAGS$nb_epoch
+batch_size_var <-  FLAGS$batch_size_var
+val_split <-  FLAGS$val_split
+test_split <- FLAGS$test_split
 
 # pour test
 dataset <- loadRData(file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
@@ -122,8 +165,11 @@ model <- keras_model_sequential() %>%
 
 summary(model)
 
+#fonction d'arret si on n'améliore plus la loss au bout de 20 epoch
+early_stop <- callback_early_stopping(monitor = "val_loss", patience = 20)
+
 model %>% compile(
-  optimizer = optimizer_var,
+  optimizer = opt,
   loss = loss_function, #sparse_categorical_crossentropy, accurary ?
   metrics = metrics_var
 )
@@ -134,7 +180,9 @@ print(paste0("Lancement de l'entrainement : ", tik))
 history <- model %>%
   fit(
     x = train_array, y = train_array_y,
-    epochs = nb_epoch, batch_size = batch_size_var,
+    epochs = nb_epoch,
+    batch_size = batch_size_var,
+    callbacks = list(early_stop),
     validation_split = val_split,
     verbose = 2 #jouer sur le learning rate
   )
@@ -205,7 +253,7 @@ save(data_distrib, file = file.path(path_dir_result, "data_distrib.Rdata"))
 save(resultat_test, file = file.path(path_dir_result, "resultat_test.Rdata"))
 save(conf_matrix, file = file.path(path_dir_result, "conf_matrix.Rdata"))
 save(summary_result, file = file.path(path_dir_result, "summary_result.Rdata"))
-
+save_model_hdf5(object = model, filepath = file.path(path_dir_result, "model.h5"))
 
 # model %>% compile(
 #   loss = 'binary_crossentropy',
