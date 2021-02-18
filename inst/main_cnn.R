@@ -16,19 +16,46 @@ path_data <- "/srv/OASIS_DATA/"
 path_root <- "~/GENERIC/dementiaproject/"
 
 FLAGS <- flags(
-  flag_string("loss_function", "sparse_categorical_crossentropy"),
+  flag_boolean("preprocess", FALSE),
+  flag_string("raw_dir", "data_raw_t1"),
+  flag_string("cut_list", "135_140_145_150"),
+  flag_integer("width_target", 224),
+  flag_integer("height_target", 224),
+  flag_string("loss_function", "binary_crossentropy"),
   flag_string("optimizer_var", "adam"),
   flag_numeric("learning_rate", 0.001),
   flag_string("metrics_var", "accuracy"),
-  flag_integer("nb_epoch", 40),
+  flag_integer("nb_epoch", 1),
   flag_integer("batch_size_var", 40),
   flag_numeric("val_split", 0.2),
   flag_numeric("test_split", 0.1)
 )
 
-#Variables
-width_target <- 254
-height_target <- 254
+
+## reprocess data extraction function
+# path_raw <- file.path(path_data, "data_raw_t1")
+# path_selected <- file.path(path_data, "data_selected")
+# path_processed <- file.path(path_data, "data_processed_new")
+#ds <- cut_selection(path_raw, path_selected, path_processed, cut_list = c(106))
+
+if (FLAGS$preprocess) {
+  path_raw <- file.path(path_data, FLAGS$raw_dir)
+  #le repertoire de selection et processing est toujours le meme
+  path_selected <- file.path(path_data, "data_selected")
+  path_processed <- file.path(path_data, "data_processed")
+  cut_list <- as.numeric(unlist(str_split(FLAGS$cut_list, pattern = "_")))
+  dataset <- cut_selection(path_raw, path_selected, path_processed, cut_list = cut_list)
+} else {
+  path_processed <- file.path(path_data, "data_processed")
+  dataset <- dementiaproject::loadRData(file.path(path_processed, "dataset.Rdata"))
+}
+
+##
+
+
+
+width_target <- FLAGS$width_target
+height_target <- FLAGS$height_target
 
 loss_function <- FLAGS$loss_function
 # valeurs possibles
@@ -68,7 +95,7 @@ val_split <-  FLAGS$val_split
 test_split <- FLAGS$test_split
 
 # pour test
-dataset <- loadRData(file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
+#dataset <- loadRData(file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
 
 #on selectionne 10% de l'échantillon pour jeu de test (avant le sous echantillonage pour garder la meme proportion)
 dataset$test_set <- sample(1:(test_split*100), nrow(dataset), replace = TRUE)
@@ -97,14 +124,14 @@ file.remove(list.files(path_dir_test, pattern = ".png", full.names = TRUE))
 
 print("Copie des fichiers de la partie train")
 map(seq(1,nrow(data_train), 1), function(x) {
-  print(paste0("Copie train : ", x, "/", nrow(data_train)))
-  file.copy(from = file.path(path_data, "dataset_processed", data_train[x]$new_name), to = path_dir_train)
+  #print(paste0("Copie train : ", x, "/", nrow(data_train)))
+  file.copy(from = file.path(path_processed, data_train[x]$new_name), to = path_dir_train)
 })
 
 print("Copie des fichiers de la partie test")
 map(seq(1,nrow(data_test), 1), function(x) {
-  print(paste0("Copie test : ", x, "/", nrow(data_test)))
-  file.copy(from = file.path(path_data, "dataset_processed", data_test[x]$new_name), to = path_dir_test)
+  #print(paste0("Copie test : ", x, "/", nrow(data_test)))
+  file.copy(from = file.path(path_processed, data_test[x]$new_name), to = path_dir_test)
 })
 
 rm(data_train_nondement)
@@ -120,7 +147,7 @@ print(paste0("Fin extract feature"))
 
 #check brain
 # testbrain <- t(matrix(as.numeric(trainData$X[2,]),
-#                     nrow = width, ncol = height, T))
+#                     nrow = width_target, ncol = height_target, T))
 # image(t(apply(testbrain, 2, rev)), col = gray.colors(12),
 #       axes = F)
 
@@ -130,6 +157,10 @@ train_array <- t(trainData$X)
 dim(train_array) <- c(width_target, height_target, nrow(trainData$X), 1)
 train_array <- aperm(train_array, c(3,1,2,4)) # Reorder dimensions
 train_array_y <- as.numeric(as.logical(trainData$y))
+if (FLAGS$loss_function == "binary_crossentropy") {
+  train_array_y <- as.logical(train_array_y)
+}
+
 rm(trainData)
 
 #afin de gagner en mémoire on redémare la session R
@@ -166,7 +197,7 @@ model <- keras_model_sequential() %>%
 summary(model)
 
 #fonction d'arret si on n'améliore plus la loss au bout de 20 epoch
-early_stop <- callback_early_stopping(monitor = "val_loss", patience = 20)
+early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
 
 model %>% compile(
   optimizer = opt,
@@ -198,14 +229,18 @@ test_array <- t(testData$X)
 dim(test_array) <- c(width_target, height_target, nrow(testData$X), 1)
 test_array <- aperm(test_array, c(3,1,2,4)) # Reorder dimensions
 test_array_y <- as.numeric(as.logical(testData$y))
+if (FLAGS$loss_function == "binary_crossentropy") {
+  test_array_y <- as.logical(test_array_y)
+}
+
 rm(testData)
 
 predictions <-  predict_classes(model, test_array)
 probabilities <- predict_proba(model, test_array)
 
 resultat_test <- data.table()
-resultat_test$pred <- predictions
-resultat_test$obs <- test_array_y
+resultat_test$pred <- as.numeric(predictions)
+resultat_test$obs <- as.numeric(test_array_y)
 
 #matrice de confusion
 conf_matrix <- confusionMatrix(data = as.factor(resultat_test$pred), reference = as.factor(resultat_test$obs))
@@ -213,7 +248,8 @@ conf_matrix <- confusionMatrix(data = as.factor(resultat_test$pred), reference =
 summary_result <- data.table(width_target_img = width_target,
                              height_target_img = height_target,
                              loss_function = loss_function,
-                             optimizer = optimizer_var,
+                             optimizer = FLAGS$optimizer_var,
+                             learning_rate = FLAGS$learning_rate,
                              metrics = metrics_var,
                              nb_epoch = nb_epoch,
                              batch = batch_size_var,
@@ -223,7 +259,10 @@ summary_result <- data.table(width_target_img = width_target,
                              good_classif_rate = nrow(resultat_test[pred == obs]) / nrow(resultat_test),
                              sensitivity = conf_matrix$byClass["Sensitivity"],
                              specificity = conf_matrix$byClass["Specificity"],
-                             time_train = tok)
+                             time_train = tok,
+                             cut_selection = FLAGS$cut_list,
+                             preprocess = FLAGS$preprocess,
+                             raw_dir = FLAGS$raw_dir)
 
 # # Visual inspection of 32 cases
 # set.seed(100)

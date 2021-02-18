@@ -16,7 +16,7 @@ extract_feature <- function(path_dir, data_ref, width = 256, height = 256, label
   new_name <- NULL
 
   ## List images in path
-  images_names <- list.files(path_dir, full.names = TRUE)
+  images_names <- list.files(path_dir, pattern = ".png", full.names = TRUE)
   img_size <- width * height
 
   if (labelsExist){

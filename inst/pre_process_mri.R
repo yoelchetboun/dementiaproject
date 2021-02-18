@@ -108,7 +108,7 @@ myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/launch_cnn.R"
 file.remove("/home/chetbo/GENERIC/dementiaproject/inst/launch_cnn.log")
 cmd <- cron_rscript(myscript)
 cron_rm(id = "cnn_launch")
-cron_add(cmd, frequency = '43 17 16 02 *', id = 'cnn_launch', description = 'cnn_launch')
+cron_add(cmd, frequency = '45 13 18 02 *', id = 'cnn_launch', description = 'cnn_launch')
 
 
 

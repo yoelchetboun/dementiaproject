@@ -11,4 +11,6 @@ RoxygenNote: 7.1.1
 Imports:
     pbapply,
     EBImage,
-    data.table
+    data.table,
+    purrr,
+    stats
