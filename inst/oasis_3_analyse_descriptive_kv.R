@@ -1605,8 +1605,301 @@ diag_data<-diag_data[TOBAC30==9, TOBAC30:=0]
 diag_data$TABAC_30j <-as.factor(diag_data$TOBAC30)
 levels(diag_data$TABAC_30j)
 summary(diag_data$TABAC_30j)
-TOBAC30<-NULL
+diag_data$TOBAC30<-NULL
 
+
+#TOBAC100 : Cigarette dans les 100 derniers jours
+summary(diag_data$TOBAC100)
+#2 valeurs manquantes
+select<-diag_data[is.na(diag_data$TOBAC100)]
+select$cdr
+#Du 0
+#et plusieurs valeurs à 9, avec des CDR faibles -> on recode à 0
+select<-diag_data[TOBAC100==9,]
+select$cdr
+
+ggplot(na.omit(diag_data[, .(CDR3 ,TOBAC100)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~TOBAC100) + ggtitle("Nombre de diagnostics vs Tabac dans les 100 jours") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Tabac dans les 100 jours", y = "nombre de diagnostics")
+
+#Attention, on a des modalités inexistantes : 3, 4 et 8
+select<-diag_data[TOBAC100==8,]
+select$cdr
+#Ok que du CDR 0.0
+
+select<-diag_data[TOBAC100==3,]
+select$cdr
+#Ok que du CDR 0.0
+
+select<-diag_data[TOBAC100==4,]
+select$cdr
+#Ok que du CDR 0.5
+
+diag_data<-diag_data[is.na(TOBAC100), TOBAC100:=0]
+diag_data<-diag_data[TOBAC100==9, TOBAC100:=0]
+diag_data<-diag_data[TOBAC100==3, TOBAC100:=0]
+diag_data<-diag_data[TOBAC100==4, TOBAC100:=0]
+diag_data<-diag_data[TOBAC100==8, TOBAC100:=0]
+
+diag_data$TABAC_100j <-as.factor(diag_data$TOBAC100)
+levels(diag_data$TABAC_100j)
+summary(diag_data$TABAC_100j)
+diag_data$TOBAC100<-NULL
+
+diag_data$SMOKYRS<-NULL
+diag_data$PACKSPER<-NULL
+diag_data$QUITSMOK<-NULL
+
+#ABUSOTHR : Consommation d'autres substances nocives
+summary(diag_data$ABUSOTHR)
+#3 valeurs manquantes
+select<-diag_data[is.na(diag_data$ABUSOTHR)]
+select$cdr
+#Du 0
+#et plusieurs valeurs à 9, avec des CDR variés -> on recode à 9
+select<-diag_data[ABUSOTHR==9,]
+select$cdr
+
+ggplot(na.omit(diag_data[, .(CDR3 ,ABUSOTHR)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~ABUSOTHR) + ggtitle("Nombre de diagnostics vs Consommation d'autres substances") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Consommation d'autres substances", y = "nombre de diagnostics")
+
+diag_data<-diag_data[is.na(ABUSOTHR), ABUSOTHR:=9]
+diag_data$AUT_SUBSTANCES <-as.factor(diag_data$ABUSOTHR)
+levels(diag_data$AUT_SUBSTANCES)
+summary(diag_data$AUT_SUBSTANCES)
+diag_data$ABUSOTHR<-NULL
+
+#ABUSX : AUtres substances en clair pour ceux qui consomment d'autres substances nocives
+#On supprime
+diag_data$ABUSX<-NULL
+
+
+#PSYCDIS : Troubles psychiatriques
+summary(diag_data$PSYCDIS )
+#2 valeurs manquantes
+select<-diag_data[is.na(diag_data$PSYCDIS)]
+select$cdr
+#Du 0
+#et 7 valeurs à 9, avec des CDR faibles -> on recode à 0
+select<-diag_data[PSYCDIS==9,]
+select$cdr
+
+ggplot(na.omit(diag_data[, .(CDR3 ,PSYCDIS)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~PSYCDIS) + ggtitle("Nombre de diagnostics vs Troubles psychiatriques") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Troubles psychiatriques", y = "nombre de diagnostics")
+
+diag_data<-diag_data[is.na(PSYCDIS), PSYCDIS:=0]
+diag_data<-diag_data[PSYCDIS==9, PSYCDIS:=0]
+diag_data$TROUBLES_PSY <-as.factor(diag_data$PSYCDIS)
+levels(diag_data$TROUBLES_PSY)
+summary(diag_data$TROUBLES_PSY)
+diag_data$PSYCDIS<-NULL
+
+#A3CHG et PARCHG
+#Variables introuvables, on supprime
+diag_data$A3CHG<-NULL
+diag_data$PARCHG<-NULL
+
+#LIVSIT : Situation de vie du patient : réside seul, en couple avec son conjoint, réside avec un proche, réside en collectivité, autres
+summary(diag_data$LIVSIT)
+#2 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(LIVSIT), LIVSIT:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,LIVSIT)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~LIVSIT) + ggtitle("Nombre de diagnostics vs Cohabitation") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Cohabitation", y = "nombre de diagnostics")
+diag_data$COHABITATION<-as.factor(diag_data$LIVSIT)
+diag_data$LIVSIT<-NULL
+
+#INDEPEND : Autonomie
+summary(diag_data$INDEPEND)
+#4 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(INDEPEND), INDEPEND:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,INDEPEND)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~INDEPEND) + ggtitle("Nombre de diagnostics vs Autonomie") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Autonomie", y = "nombre de diagnostics")
+diag_data$AUTONOMIE<-as.factor(diag_data$INDEPEND)
+diag_data$INDEPEND<-NULL
+
+
+#RESIDENC : Type de résidence
+summary(diag_data$RESIDENC)
+#3 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(RESIDENC), RESIDENC:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,RESIDENC)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~RESIDENC) + ggtitle("Nombre de diagnostics vs Type de résidence") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Type de résidence", y = "nombre de diagnostics")
+diag_data$RESIDENC<-as.factor(diag_data$RESIDENC)
+
+
+#MARISTAT: Statut marital
+summary(diag_data$MARISTAT)
+#3 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(MARISTAT), MARISTAT:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,MARISTAT)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~RESIDENC) + ggtitle("Nombre de diagnostics vs Statut marital") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Statut marital", y = "nombre de diagnostics")
+diag_data$MARISTAT<-as.factor(diag_data$MARISTAT)
+
+
+##########################################################################################
+# Table A3 : SUbject family history
+
+#MOMDEM: La mère du patient est-elle atteinte d'une démence ?
+summary(diag_data$MOMDEM)
+#2545 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(MOMDEM), MOMDEM:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,MOMDEM)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~MOMDEM) + ggtitle("Nombre de diagnostics vs Démence de la mère") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Démence de la mère", y = "nombre de diagnostics")
+#Résultat étrange : trop de valeurs manquantes, on supprime la variable
+diag_data$MOMDEM<-NULL
+
+#DADDEM: Le père du patient est-elle atteinte d'une démence ?
+summary(diag_data$DADDEM)
+#2564 valeurs manquantes
+#On les recode à 9
+diag_data<-diag_data[is.na(DADDEM), DADDEM:=9]
+ggplot(na.omit(diag_data[, .(CDR3 ,DADDEM)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~DADDEM) + ggtitle("Nombre de diagnostics vs Démence du père") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Démence du père", y = "nombre de diagnostics")
+#Résultat étrange : trop de valeurs manquantes, on supprime la variable
+diag_data$DADDEM<-NULL
+
+#On supprime les variables de la table
+diag_data$MOMLIV<-NULL
+diag_data$MOMDEM<-NULL
+diag_data$MOMONSET<-NULL
+diag_data$DADLIV<-NULL
+diag_data$DADDEM<-NULL
+diag_data$DADONSET<-NULL
+diag_data$SIBCHG<-NULL
+diag_data$TWIN<-NULL
+diag_data$TWINTYPE<-NULL
+diag_data$SIBS<-NULL
+diag_data$SIB1LIV<-NULL
+diag_data$SIB1DEM<-NULL
+diag_data$SIB1ONS<-NULL
+diag_data$SIB2LIV<-NULL
+diag_data$SIB2DEM<-NULL
+diag_data$SIB2ONS<-NULL
+diag_data$SIB3LIV<-NULL
+diag_data$SIB3DEM<-NULL
+diag_data$SIB3ONS<-NULL
+diag_data$SIB4LIV<-NULL
+diag_data$SIB4DEM<-NULL
+diag_data$SIB4ONS<-NULL
+diag_data$SIB5LIV<-NULL
+diag_data$SIB5DEM<-NULL
+diag_data$SIB5ONS<-NULL
+diag_data$SIB6LIV<-NULL
+diag_data$SIB6DEM<-NULL
+diag_data$SIB6ONS<-NULL
+diag_data$SIB7LIV<-NULL
+diag_data$SIB7DEM<-NULL
+diag_data$SIB7ONS<-NULL
+diag_data$SIB8LIV<-NULL
+diag_data$SIB8DEM<-NULL
+diag_data$SIB8ONS<-NULL
+diag_data$SIB9LIV<-NULL
+diag_data$SIB9DEM<-NULL
+diag_data$SIB9ONS<-NULL
+diag_data$SIB10LIV<-NULL
+diag_data$SIB10DEM<-NULL
+diag_data$SIB11LIV<-NULL
+diag_data$SIB11DEM<-NULL
+diag_data$SIB12LIV<-NULL
+diag_data$SIB12DEM<-NULL
+diag_data$SIB13LIV<-NULL
+diag_data$SIB13DEM<-NULL
+diag_data$SIB13ONS<-NULL
+diag_data$KIDCHG<-NULL
+diag_data$KIDS<-NULL
+diag_data$KID1LIV<-NULL
+diag_data$KID1DEM<-NULL
+diag_data$KID1ONS<-NULL
+diag_data$KID2LIV<-NULL
+diag_data$KID2DEM<-NULL
+diag_data$KID2ONS<-NULL
+diag_data$KID3LIV<-NULL
+diag_data$KID3DEM<-NULL
+diag_data$KID3ONS<-NULL
+diag_data$KID4LIV<-NULL
+diag_data$KID4DEM<-NULL
+diag_data$KID4ONS<-NULL
+diag_data$KID5LIV<-NULL
+diag_data$KID5DEM<-NULL
+diag_data$KID5ONS<-NULL
+diag_data$KID6LIV<-NULL
+diag_data$KID6DEM<-NULL
+diag_data$KID6ONS<-NULL
+diag_data$KID7LIV<-NULL
+diag_data$KID8LIV<-NULL
+diag_data$KID8DEM<-NULL
+diag_data$KID9LIV<-NULL
+diag_data$KID9DEM<-NULL
+diag_data$KID10LIV<-NULL
+diag_data$RELCHG<-NULL
+diag_data$RELSDEM<-NULL
+diag_data$REL1LIV<-NULL
+diag_data$REL1ONS<-NULL
+diag_data$REL2LIV<-NULL
+diag_data$REL2ONS<-NULL
+diag_data$REL3LIV<-NULL
+diag_data$REL3ONS<-NULL
+diag_data$REL4LIV<-NULL
+diag_data$REL4ONS<-NULL
+diag_data$REL5LIV<-NULL
+diag_data$REL5ONS<-NULL
+diag_data$REL6LIV<-NULL
+diag_data$REL6ONS<-NULL
+diag_data$REL7LIV<-NULL
+diag_data$REL7ONS<-NULL
+diag_data$REL8LIV<-NULL
+diag_data$REL8ONS<-NULL
+diag_data$REL9LIV<-NULL
+diag_data$REL9ONS<-NULL
+diag_data$REL10LIV<-NULL
+diag_data$REL10ONS<-NULL
+diag_data$REL11LIV<-NULL
+diag_data$REL11ONS<-NULL
+diag_data$REL12LIV<-NULL
+diag_data$REL12ONS<-NULL
+diag_data$REL13LIV<-NULL
+diag_data$REL13ONS<-NULL
+diag_data$REL14LIV<-NULL
+diag_data$REL14ONS<-NULL
+
+
+
+####################################################################################
+####################################################################################
+# Table sujets
+
+#M.F ; Genre du patient
+summary(subjects_data$M.F)
+#aucune valeur manquante
+
+#Hand; Droitier ou gaucher
+summary(subjects_data$Hand)
+#aucune valeur manquante
+
+#Race
+summary(subjects_data$Race)
+#aucune valeur manquante
+
+#Ethnie
+summary(subjects_data$Ethnicity)
+#aucune valeur manquante
+
+#Education : nombre d'années d'études si le niveau n'est pas atteint
+#12 : High School/GED
+#16 : BAchelor degree
+#18 : Master's degree
+#20 : Doctorate
+summary(subjects_data$Education)
+#3 valeurs manquantes et des valeurs extrêmes
+
+####################################################################################
+####################################################################################
+#Table finale : on enrichit la table des diagnostics par les informations qui sont
+#dans la table des sujets
 
 
 
