@@ -1,17 +1,12 @@
 ######################################################################
-# Programme 1 - statistiques descriptives sur les principales tables
+# Programme 1 - Préparation des bases Oasis 3
 ######################################################################
-
-#Tables disponibles :
-#oasis3_sujets_complete : table contenant l'ensemble des participants à l'étude
-#Table oasis3_freesurfer_complete : table contenant une ligne par diagnostic et l'ensemble des variables issues de l'imagerie médicale
-#Table oasis3_diagnostic_complete : table contenant l'ensemble des variables "patient" : une ligne par diagnostic
-
 
 library(data.table)
 library(purrr)#permet de faire des boucles plus rapidement
 library(ggplot2)
 library(dplyr)
+library(stringr)#pour gérer les chaînes de caractères
 
 
 #chemin demon répertoire projet
@@ -22,33 +17,39 @@ path_root <-"C:/Users/Klara/Documents/Datascientist/dementiaproject"
 path_data <- "C:/Users/Klara/Documents/Datascientist/dementiaproject/donnees irm patients/oasis3"
 
 
-##### ---- Subjects data ---- ######
+####################################################################################
+# Préparation de la table des sujets
+####################################################################################
 
-subjects_data <- read.csv2(file.path(path_root, "/inst/extdata/oasis3/bases/sujets/finale/oasis3_sujets_complete.csv"), header = TRUE, sep = ",")#table sujets avec toutes les variables pour chaque patient
-setDT(subjects_data)#conversion en datatable
-str(subjects_data)#structure de la table
-#subjects_data <- subjects_data[,which(unlist(lapply(subjects_data, function(x)!all(is.na(x))))),with=F] #suppression des colonnes vides
-subjects_data$M.F <- as.factor(subjects_data$M.F)
-subjects_data$Hand <- as.factor(subjects_data$Hand)
-subjects_data$Race <- as.factor(subjects_data$Race)
-subjects_data$Ethnicity <- as.factor(subjects_data$Ethnicity)
+#M.F ; Genre du patient
+summary(subjects_data$M.F)
+#aucune valeur manquante
+
+#Hand; Droitier ou gaucher
+summary(subjects_data$Hand)
+#aucune valeur manquante
+
+#Race
+summary(subjects_data$Race)
+#aucune valeur manquante
+
+#Ethnie
+summary(subjects_data$Ethnicity)
+#aucune valeur manquante
+
+#Education : nombre d'années d'études si le niveau n'est pas atteint
+#12 : High School/GED
+#16 : BAchelor degree
+#18 : Master's degree
+#20 : Doctorate
+summary(subjects_data$Education)
+subjects_data$Education<-as.factor(subjects_data$Education)
+#3 valeurs manquantes et des valeurs extrêmes
 
 
-##### ---- Diagnostics data ---- ######
-diag_data <- read.csv2(file.path(path_root, "/inst/extdata/oasis3/bases/diagnostics/finale/oasis3_diagnostic_complete.csv"), header = TRUE, sep = ",")#table sujets avec toutes les variables pour chaque patient
-setDT(diag_data)#conversion en datatable
-str(diag_data)#structure de la table
-
-
-##### ---- Freesurfer data ---- ######
-freesurfer_data <- read.csv2(file.path(path_root, "/inst/extdata/oasis3/bases/freesurfer/finale/oasis3_freesurfer_complete.csv"), header = TRUE, sep = ",")#table sujets avec toutes les variables pour chaque patient
-setDT(freesurfer_data)#conversion en datatable
-str(freesurfer_data)#structure de la table
-
-
-#########################################################
+##############################################################################################
 # Préparation de la table diagnostics
-#########################################################
+##############################################################################################
 
 #On a beaucoup de valeurs manquantes dans cette table => il faut étudier chacune des variables, voir si elle a un lien avec
 #la variable cible, combien elle présente de valeurs manquantes et décider de ce qu'on en fait.
@@ -153,7 +154,7 @@ ggplot(diag_data[, .(cdr , age_at_diagnosis )], aes(fill = cdr, y= age_at_diagno
 select<-is.na(diag_data$commun)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_VIECOLL <- diag_data$commun
+diag_data$CDR_VIECOLL <- as.factor(diag_data$commun)
 diag_data$commun<-NULL
 
 # 2) HOMEHOBB : occupations au foyer et hobbies
@@ -161,7 +162,7 @@ diag_data$commun<-NULL
 select<-is.na(diag_data$homehob)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_OCC_HOB <- diag_data$homehobb
+diag_data$CDR_OCC_HOB <- as.factor(diag_data$homehobb)
 diag_data$homehobb<-NULL
 
 # 3) PERSCARE : soins personnels
@@ -169,7 +170,7 @@ diag_data$homehobb<-NULL
 select<-is.na(diag_data$perscare)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_SOINS_PERS <- diag_data$perscare
+diag_data$CDR_SOINS_PERS <- as.factor(diag_data$perscare)
 diag_data$perscare<-NULL
 
 #4) judgment : jugement
@@ -177,7 +178,7 @@ diag_data$perscare<-NULL
 select<-is.na(diag_data$judgment)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_JUGEMENT <- diag_data$judgment
+diag_data$CDR_JUGEMENT <- as.factor(diag_data$judgment)
 diag_data$judgment<-NULL
 
 #5) MEMORY : mémoire
@@ -185,7 +186,7 @@ diag_data$judgment<-NULL
 select<-is.na(diag_data$memory)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_MEMOIRE <- diag_data$memory
+diag_data$CDR_MEMOIRE <- as.factor(diag_data$memory)
 diag_data$memory<-NULL
 
 #6) ORIENT : orientation
@@ -193,7 +194,7 @@ diag_data$memory<-NULL
 select<-is.na(diag_data$orient)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_ORIENT <- diag_data$orient
+diag_data$CDR_ORIENT <- as.factor(diag_data$orient)
 diag_data$orient<-NULL
 
 # 7) CDRSUM : CDR standard : somme des différents axes
@@ -201,7 +202,7 @@ diag_data$orient<-NULL
 select<-is.na(diag_data$sumbox)
 which(select)
 #pas de valeur manquante
-diag_data$CDR_SOMME <- diag_data$sumbox
+diag_data$CDR_SOMME <- as.factor(diag_data$sumbox)
 diag_data$sumbox<-NULL
 
 #Attention, par construction, les variables CDR_ sont dnc très liées à la variable cible CDR. Elles l'expliquent toutes ensemble.
@@ -235,6 +236,7 @@ which(select)
 
 #On supprime les diagnostics pour lesquels on a une valeur manquantes
 diag_data<-diag_data[!select,]
+diag_data$apoe<-as.factor(diag_data$apoe)
 
 #Genotype
 ggplot(na.omit(diag_data[, .(cdr , apoe )]), aes(fill = cdr, x= cdr)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~apoe) + ggtitle("Nombre de diagnostics vs Genotype") +
@@ -279,30 +281,39 @@ ggplot(diag_data[, .(cdr , POIDS)], aes(fill = cdr, y= POIDS)) + geom_boxplot() 
 
 #ABRUPT : Apparition soudaine
 # 20 Valeurs manquantes
+diag_data$ABRUPT<-as.factor(diag_data$ABRUPT)
 
 #STEPWISE : Détérioration progressive
 # 20 Valeurs manquantes
+diag_data$STEPWISE<-as.factor(diag_data$STEPWISE)
 
 #SOMATIC : plaintes somatiques
 # 21 valeurs manquantes
+diag_data$SOMATIC<-as.factor(diag_data$SOMATIC)
 
 #EMOT : incontinence émotionnelle
 #19 valeurs manquantes
+diag_data$EMOT<-as.factor(diag_data$EMOT)
 
 #HXHYPER : historique d'une présence d'hypertension
 #20 valeurs manquantes
+diag_data$HXHYPER<-as.factor(diag_data$HXHYPER)
 
 #HXSTROKE : historique d'AVC
 #19 valeurs manquantes
+diag_data$HXSTROKE<-as.factor(diag_data$HXSTROKE)
 
 #FOCLSYM : symptômes neurologiques focaux
 #19 valeurs manquantes
+diag_data$FOCLSYM<-as.factor(diag_data$FOCLSYM)
 
 #FOCLSIGN : Signes neurologiques focaux
 #19 valeurs manquantes
+diag_data$FOCLSIGN<-as.factor(diag_data$FOCLSIGN)
 
 # HACHIN : Hachinski Ischemic score
 #19 valeurs manquantes
+diag_data$HACHIN<-as.factor(diag_data$HACHIN)
 
 #On supprime les individus ayant des valeurs manquantes pour SOMATIC, ce qui revient à gérer le problème pour les autres variables
 #Seulement 21 individus
@@ -376,6 +387,7 @@ levels(diag_data$EXAM_PARKINSON)
 
 ggplot(na.omit(diag_data[, .(cdr , EXAM_PARKINSON )]), aes(fill = cdr, x= cdr)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~EXAM_PARKINSON) + ggtitle("Nombre de diagnostics vs UPDRS") +
   scale_fill_discrete(name = "CDR") + labs(x = "UPDRS", y = "Nombre de diagnostics")
+diag_data$PDNORMAL<-NULL
 
 #On supprime toutes les autres variables qui ne sont remplies que si l'examen n'était pas normal
 
@@ -1264,7 +1276,7 @@ select$cdr
 ggplot(na.omit(diag_data[, .(CDR3 , PDOTHR)]), aes(fill = CDR3, x=CDR3)) + geom_bar(stat = "count", position=position_dodge()) + facet_wrap(~PDOTHR) + ggtitle("Nombre de diagnostics vs Autre trouble de parkinsonisme") +
   scale_fill_discrete(name = "CDR") + labs(x = "Autre trouble de parkinsonisme", y = "nombre de diagnostics")
 
-diag_data<-diag_data[PDOTHR==9,PD:=0]
+diag_data<-diag_data[PDOTHR==9,PDOTHR:=0]
 diag_data$OTH_PARKINSON<-as.factor(diag_data$PDOTHR)
 levels(diag_data$OTH_PARKINSON)
 summary(diag_data$OTH_PARKINSON)
@@ -1738,6 +1750,87 @@ ggplot(na.omit(diag_data[, .(CDR3 ,MARISTAT)]), aes(fill = CDR3, x=CDR3)) + geom
   scale_fill_discrete(name = "CDR") + labs(x = "Statut marital", y = "nombre de diagnostics")
 diag_data$MARISTAT<-as.factor(diag_data$MARISTAT)
 
+############################################################################################
+# Table D1 - Diagnostic clinique de démence
+#On supprime les variables de cette table
+
+diag_data$WHODIDDX<-NULL
+diag_data$NORMCOG<-NULL
+diag_data$DEMENTED<-NULL
+diag_data$MCIAMEM<-NULL
+diag_data$MCIAPLUS<-NULL
+diag_data$MCIAPLAN<-NULL
+diag_data$MCIAPATT<-NULL
+diag_data$MCIAPEX<-NULL
+diag_data$MCIAPVIS<-NULL
+diag_data$MCINON1<-NULL
+diag_data$MCIN1LAN<-NULL
+diag_data$MCIN1ATT<-NULL
+diag_data$MCIN1EX<-NULL
+diag_data$MCIN1VIS<-NULL
+diag_data$MCINON2<-NULL
+diag_data$MCIN2LAN<-NULL
+diag_data$MCIN2ATT<-NULL
+diag_data$MCIN2EX<-NULL
+diag_data$MCIN2VIS<-NULL
+diag_data$IMPNOMCI<-NULL
+diag_data$PROBAD<-NULL
+diag_data$PROBADIF<-NULL
+diag_data$POSSAD<-NULL
+diag_data$POSSADIF<-NULL
+diag_data$DLB<-NULL
+diag_data$DLBIF<-NULL
+diag_data$VASC<-NULL
+diag_data$VASCIF<-NULL
+diag_data$VASCPS<-NULL
+diag_data$VASCPSIF<-NULL
+diag_data$ALCDEM<-NULL
+diag_data$ALCDEMIF<-NULL
+diag_data$DEMUN<-NULL
+diag_data$DEMUNIF<-NULL
+diag_data$FTD<-NULL
+diag_data$FTDIF<-NULL
+diag_data$PPAPH<-NULL
+diag_data$PPAPHIF<-NULL
+diag_data$PNAPH<-NULL
+diag_data$SEMDEMAN<-NULL
+diag_data$SEMDEMAG<-NULL
+diag_data$PPAOTHR<-NULL
+diag_data$PSP<-NULL
+diag_data$PSPIF<-NULL
+diag_data$CORT<-NULL
+diag_data$CORTIF<-NULL
+diag_data$HUNT<-NULL
+diag_data$HUNTIF<-NULL
+diag_data$PRION<-NULL
+diag_data$PRIONIF<-NULL
+diag_data$MEDS<-NULL
+diag_data$MEDSIF<-NULL
+diag_data$DYSILL<-NULL
+diag_data$DYSILLIF<-NULL
+diag_data$DEP<-NULL
+diag_data$DEPIF<-NULL
+diag_data$OTHPSY<-NULL
+diag_data$OTHPSYIF<-NULL
+diag_data$DOWNS<-NULL
+diag_data$DOWNSIF<-NULL
+diag_data$PARK<-NULL
+diag_data$PARKIF<-NULL
+diag_data$STROKE<-NULL
+diag_data$STROKIF<-NULL
+diag_data$HYCEPH<-NULL
+diag_data$HYCEPHIF<-NULL
+diag_data$BRNINJ<-NULL
+diag_data$BRNINJIF<-NULL
+diag_data$NEOP<-NULL
+diag_data$NEOPIF<-NULL
+diag_data$COGOTH<-NULL
+diag_data$COGOTHIF<-NULL
+diag_data$COGOTH2<-NULL
+diag_data$COGOTH2F<-NULL
+diag_data$COGOTH3<-NULL
+diag_data$COGOTH3F<-NULL
+
 
 ##########################################################################################
 # Table A3 : SUbject family history
@@ -1866,58 +1959,132 @@ diag_data$REL13ONS<-NULL
 diag_data$REL14LIV<-NULL
 diag_data$REL14ONS<-NULL
 
-
-
-####################################################################################
-####################################################################################
-# Table sujets
-
-#M.F ; Genre du patient
-summary(subjects_data$M.F)
-#aucune valeur manquante
-
-#Hand; Droitier ou gaucher
-summary(subjects_data$Hand)
-#aucune valeur manquante
-
-#Race
-summary(subjects_data$Race)
-#aucune valeur manquante
-
-#Ethnie
-summary(subjects_data$Ethnicity)
-#aucune valeur manquante
-
-#Education : nombre d'années d'études si le niveau n'est pas atteint
-#12 : High School/GED
-#16 : BAchelor degree
-#18 : Master's degree
-#20 : Doctorate
-summary(subjects_data$Education)
-#3 valeurs manquantes et des valeurs extrêmes
-
-####################################################################################
 ####################################################################################
 #Table finale : on enrichit la table des diagnostics par les informations qui sont
 #dans la table des sujets
 
+diag_data_finale <- merge(diag_data, subjects_data, by = "Subject")
+diag_data_finale$PETs<-NULL
+diag_data_finale$MR.Sessions<-NULL
+diag_data_finale$CDR<-diag_data_finale$cdr
+diag_data_finale$cdr<-NULL
+summary(diag_data_finale)
+str(diag_data_finale)
 
 
 
+####################################################################################
+# Préparation de la table Freesurfer
+####################################################################################
+
+summary(freesurfer_data )
+str(freesurfer_data)
+#Pas de valeurs manquantes
+#On a des colonne à vide, on les supprime
+freesurfer_data$Left.non.WM.hypointensities_volume <-NULL
+freesurfer_data$Left.WM.hypointensities_volume  <-NULL
+freesurfer_data$Right.non.WM.hypointensities_volume <-NULL
+freesurfer_data$Right.WM.hypointensities_volume <-NULL
+
+#On apparie avec la table diagnostic pour récupérer le CDR pour chacune des sessions
+
+#1) On modifie la variable Session de la table Freesurfer pour qu'elle ait la même forme que dans la table CDR
+freesurfer_data$Session<-str_c(freesurfer_data$Subject,"_",str_sub(freesurfer_data$FS_FSDATA.ID, -5))
+
+#2) Comment matcher la visite adrc et le free surfer? parce que le jour de la visite ne coïncide pas avec le jour de l'IRM
+
+freesurfer_data[, nb_days_since_entry := sub(pattern = "d", replacement = "", strsplit(FS_FSDATA.ID, split = "_")[[1]][[3]]), by = "FS_FSDATA.ID"]
+freesurfer_data[, nb_days_since_entry := as.numeric(nb_days_since_entry)]
+
+# pour chaque mri session on recupère l'ID de la visite clinique qui suit
+freesurfer_data[, mri_following_adrc_session := diag_data_finale[Subject == .SD$Subject & nb_days_since_entry >= .SD$nb_days_since_entry]$Session[1], by = "FS_FSDATA.ID"]
+# pour chaque mri session on recup l'ID de la adrc visit qui précède
+freesurfer_data[, mri_previous_adrc_session := tail(diag_data_finale[Subject == .SD$Subject & nb_days_since_entry <= .SD$nb_days_since_entry]$Session, 1), by = "FS_FSDATA.ID"]
 
 
+#On merge à partir de la date qu'on souhaite retenir
+freesurfer_data_join <- freesurfer_data
+freesurfer_data_join <- merge(freesurfer_data_join, diag_data_finale[, .(Session, Subject,CDR,CDR3,CDR4,dementia,mmse)], by.x = "mri_following_adrc_session", by.y = "Session", all.x= TRUE)
+setnames(freesurfer_data_join, "CDR", "cdr_following_adrc")
+setnames(freesurfer_data_join, "CDR3", "cdr3_following_adrc")
+setnames(freesurfer_data_join, "CDR4", "cdr4_following_adrc")
+setnames(freesurfer_data_join, "dementia", "dementia_following_adrc")
+setnames(freesurfer_data_join, "mmse", "mmse_following_adrc")
+freesurfer_data_join <- merge(freesurfer_data_join, diag_data_finale[, .(Session, Subject,CDR,CDR3,CDR4,dementia,mmse)], by.x = "mri_previous_adrc_session", by.y = "Session", all.x= TRUE)
+setnames(freesurfer_data_join, "CDR", "cdr_previous_adrc")
+setnames(freesurfer_data_join, "CDR3", "cdr3_previous_adrc")
+setnames(freesurfer_data_join, "CDR4", "cdr4_previous_adrc")
+setnames(freesurfer_data_join, "dementia", "dementia_previous_adrc")
+setnames(freesurfer_data_join, "mmse", "mmse_previous_adrc")
+#astuce pour gérer la dernière IRM pour laquelle on n'a pas de visite médicale suivante
+freesurfer_data_join[is.na(mri_following_adrc_session), ":=" (mri_following_adrc_session = mri_previous_adrc_session,
+                                                       cdr_following_adrc = cdr_previous_adrc,
+                                                       cdr3_following_adrc = cdr3_previous_adrc,
+                                                       cdr4_following_adrc = cdr4_previous_adrc,
+                                                       mmse_following_adrc = mmse_previous_adrc,
+                                                       dementia_following_adrc = dementia_previous_adrc)]
+
+#On compte le nombre de jours qui séparent l'IRM de la visite médicale précédente et suivante
+#On compte le nombre de jours qui séparent l'IRM de la visite médicale précédente et suivante
+freesurfer_data_join$nb_days_following_adrc<-as.numeric(str_sub(freesurfer_data_join$mri_following_adrc_session, -4))
+freesurfer_data_join$nb_days_previous_adrc<-as.numeric(str_sub(freesurfer_data_join$mri_previous_adrc_session, -4))
+freesurfer_data_join$nb_days_btw_mri_fol_adrc<-freesurfer_data_join$nb_days_following_adrc-freesurfer_data_join$nb_days_since_entry
+freesurfer_data_join$nb_days_btw_mri_prev_adrc<-freesurfer_data_join$nb_days_since_entry-freesurfer_data_join$nb_days_previous_adrc
+
+setDT(freesurfer_data_join)
+#On va chercher la visite médicale de référence, ie celle qui est la plus proche en jours de l'rim
+freesurfer_data_join[nb_days_btw_mri_fol_adrc <= nb_days_btw_mri_prev_adrc, adcr_ref := "following"]
+freesurfer_data_join[nb_days_btw_mri_fol_adrc > nb_days_btw_mri_prev_adrc, adcr_ref := "previous"]
+#Si on n'a pas de session d'imagerie précédente, on veut retenir automatiquement la suivante
+freesurfer_data_join[is.na(nb_days_btw_mri_prev_adrc), adcr_ref := "following"]
+freesurfer_data_join[adcr_ref == "following", cdr_ref := cdr_following_adrc]
+freesurfer_data_join[adcr_ref == "previous", cdr_ref := cdr_previous_adrc]
+freesurfer_data_join[adcr_ref == "following", cdr3_ref := cdr3_following_adrc]
+freesurfer_data_join[adcr_ref == "previous", cdr3_ref := cdr3_previous_adrc]
+freesurfer_data_join[adcr_ref == "following", cdr4_ref := cdr4_following_adrc]
+freesurfer_data_join[adcr_ref == "previous", cdr4_ref := cdr4_previous_adrc]
+freesurfer_data_join[adcr_ref == "following", dementia_ref := dementia_following_adrc]
+freesurfer_data_join[adcr_ref == "previous", dementia_ref := dementia_previous_adrc]
+freesurfer_data_join[adcr_ref == "following", mmse_ref := mmse_following_adrc]
+freesurfer_data_join[adcr_ref == "previous", mmse_ref := mmse_previous_adrc]
+
+summary(freesurfer_data_join)
+#On a 93 lignes pour lesquelles on n'a pas de diagnostic correspondant -> on les supprime
+freesurfer_data_join<-freesurfer_data_join[!is.na(cdr_ref), ]
+
+freesurfer_data_finale<-freesurfer_data_join
+
+str(freesurfer_data_finale)
+nrow(freesurfer_data_finale)
+
+#On supprime les variables inutiles
+
+freesurfer_data_finale$mri_previous_adrc_session <-NULL
+freesurfer_data_finale$mri_following_adrc_session <-NULL
+freesurfer_data_finale$FS_FSDATA.ID<-NULL
+freesurfer_data_finale$nb_days_btw_mri_prev_adrc<-NULL
+freesurfer_data_finale$nb_days_btw_mri_fol_adrc<-NULL
+freesurfer_data_finale$nb_days_since_entry<-NULL
+freesurfer_data_finale$nb_days_previous_adrc<-NULL
+freesurfer_data_finale$nb_days_following_adrc<-NULL
+
+freesurfer_data_finale$cdr_following_adrc<-NULL
+freesurfer_data_finale$cdr_previous_adrc<-NULL
+freesurfer_data_finale$cdr3_following_adrc<-NULL
+freesurfer_data_finale$cdr3_previous_adrc<-NULL
+freesurfer_data_finale$cdr4_following_adrc<-NULL
+freesurfer_data_finale$cdr4_previous_adrc<-NULL
+freesurfer_data_finale$dementia_following_adrc<-NULL
+freesurfer_data_finale$dementia_previous_adrc<-NULL
+freesurfer_data_finale$mmse_following_adrc<-NULL
+freesurfer_data_finale$mmse_previous_adrc<-NULL
+
+freesurfer_data_finale$Subject.x<-NULL
+freesurfer_data_finale$Subject.y<-NULL
 
 
-
-
-
-
-
-
-
-
-
-
+#La table freesurfer_data_finale contient 1954 lignes et 201 variables
+#La table diag_data_finale contient 4011 observations et 100 variables
 
 
 
