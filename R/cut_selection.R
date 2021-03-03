@@ -66,9 +66,10 @@ cut_selection <- function(path_raw, path_selected, path_processed, cut_list = c(
   file.remove(list.files(path_processed, pattern = ".png", full.names = TRUE))
   file.remove(list.files(path_processed, pattern = ".Rdata", full.names = TRUE))
 
+  #à mettre dans une fonction
   map(seq(1,length(dataset$new_name), 1), function(x) {
 
-    print(paste0(x, "/", length(dataset$new_name)))
+    #print(paste0(x, "/", length(dataset$new_name)))
     file_name <- dataset$new_name[x]
 
     img <- readImage(file.path(path_selected, file_name))

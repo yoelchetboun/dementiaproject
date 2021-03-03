@@ -13,4 +13,5 @@ Imports:
     EBImage,
     data.table,
     purrr,
-    stats
+    stats,
+    OpenImageR

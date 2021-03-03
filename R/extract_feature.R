@@ -5,6 +5,8 @@
 #' @param height Hauteur de l'image cible
 #' @param labelsExist Booléen si le label existe ou non
 #' @param data_ref Table de reference du dataset
+#' @param nb_class Nombre de classe
+#' @param colormode Greyscale ou RGB (change le nombre de channel)
 #'
 #' @import pbapply
 #' @import data.table
@@ -12,7 +14,7 @@
 #' @return Retourne une liste (X = feature_matrix, y = y)) si lalelsExist = T ou uniquement feature_matrix si lalelsExist = F
 #' @export
 #'
-extract_feature <- function(path_dir, data_ref, width = 256, height = 256, labelsExist = T) {
+extract_feature <- function(path_dir, data_ref, width = 256, height = 256, labelsExist = T, nb_class = 2, colormode = "greyscale") {
   new_name <- NULL
 
   ## List images in path
@@ -20,12 +22,17 @@ extract_feature <- function(path_dir, data_ref, width = 256, height = 256, label
   img_size <- width * height
 
   if (labelsExist){
-    y <- data_ref[new_name %in% basename(images_names)]$dementia
+    if (nb_class == 2) {
+      y <- data_ref[new_name %in% basename(images_names)]$dementia
+    } else {
+      y <- data_ref[new_name %in% basename(images_names)]$cdr_ref
+
+    }
   }
 
   print(paste("Start processing", length(images_names), "images"))
   ## This function will resize an image, turn it into greyscale
-  feature_list <- pblapply(images_names, feature_list, width = width, height = height)
+  feature_list <- pblapply(images_names, feature_list, width = width, height = height, colormode = colormode)
 
   ## bind the list of vector into matrix
   feature_matrix <- do.call(rbind, feature_list)

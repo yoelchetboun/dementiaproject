@@ -3,6 +3,10 @@ usethis::use_package('shinydashboard')
 usethis::use_package('Rshinytemplate')
 usethis::use_package('pbapply')
 usethis::use_package('EBImage')
+usethis::use_package('purrr')
+usethis::use_package('stats')
+usethis::use_package('OpenImageR')
+
 
 usethis::use_build_ignore("dev_history.R")
 usethis::use_build_ignore("Rprofile.site")
