@@ -11,9 +11,16 @@ ui2 <- function(){
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Fiche Patient",
-                column(width = 9),
-                column(width = 3)
+                title = "Sélection du patient",
+                uiOutput('select_patient'),
+                div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_patient", "Sélectionner"))
+            )
+          ),
+
+
+          hidden(
+            fluidRow(id = "fiche_patient",
+                     uiOutput("info_patient")
             )
           )
         ),
