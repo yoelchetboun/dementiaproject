@@ -32,6 +32,13 @@ ui2 <- function(){
           ### Tab 2 ###
           tabName = "info",
 
+
+          hidden(
+            fluidRow(id = "patient_selected",
+                     uiOutput("patient_select")
+            )
+          ),
+
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
                 title = "Info",
@@ -50,6 +57,12 @@ ui2 <- function(){
           ### Tab 1 ###
 
           tabName = "irm",
+
+          hidden(
+            fluidRow(id = "patient_selected_rem",
+                     uiOutput("patient_select_reminder")
+            )
+          ),
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
@@ -95,6 +108,13 @@ ui2 <- function(){
           ### Tab 2 ###
           tabName = "prev_base",
 
+          hidden(
+            fluidRow(id = "patient_selected_rem2",
+                     uiOutput("patient_select_reminder2")
+            )
+          ),
+
+
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
                 title = "Prévisision de diagnostic par questionnaire",
@@ -109,6 +129,12 @@ ui2 <- function(){
 
           ### Tab 2 ###
           tabName = "prev_irm",
+
+          hidden(
+            fluidRow(id = "patient_selected_rem3",
+                     uiOutput("patient_select_reminder3")
+            )
+          ),
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,

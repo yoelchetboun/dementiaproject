@@ -36,8 +36,8 @@ path_user_base  <- file.path(path_root, "user_base.rds")
 
 
 base_patient <- data.table(id = c(0, 1),
-                           first_name = c("Nouveaux","Bond"),
-                           last_name = c("Patient", "James"),
+                           first_name = c("Nouveaux","James"),
+                           last_name = c("Patient", "Bond"),
                            age_at_diagnosis = c(NA,30),
                            date_entry = c(NA, as.character(Sys.Date())),
                            genre = c(NA,"Homme"),
@@ -675,12 +675,73 @@ server = (function(input, output, session) {
           ),
           fluidRow(
             column(width = 12, h4(),
-                   div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_modify_patient", "Modifier"))))
+                   div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_modify_patient", "Modifier", width = "160px")), " ",
+                   div(style="display: inline-block; vertical-align:top; width: 150px; margin-left:30px", actionButton("click_erase_patient", "Supprimer", width = "160px"))))
         )
       })
     }
 
     shinyjs::show("fiche_patient")
+    shinyjs::show("patient_selected")
+    shinyjs::show("patient_selected_rem")
+    shinyjs::show("patient_selected_rem2")
+    shinyjs::show("patient_selected_rem3")
+
+    output$patient_select = renderUI({
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+      box(
+        width = 12,
+        status = "primary",  solidHeader = TRUE,
+        title = "Patient séléctionné",
+          infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+            paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+            color = "light-blue", fill =TRUE, width = 12
+          ))
+    })
+
+    output$patient_select_reminder = renderUI({
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+      box(
+        width = 12,
+        status = "primary",  solidHeader = TRUE,
+        title = "Patient séléctionné",
+        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                color = "light-blue", fill =TRUE, width = 12
+        ))
+    })
+
+    output$patient_select_reminder2 = renderUI({
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+      box(
+        width = 12,
+        status = "primary",  solidHeader = TRUE,
+        title = "Patient séléctionné",
+        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                color = "light-blue", fill =TRUE, width = 12
+        ))
+    })
+    output$patient_select_reminder3 = renderUI({
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+      box(
+        width = 12,
+        status = "primary",  solidHeader = TRUE,
+        title = "Patient séléctionné",
+        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                color = "light-blue", fill =TRUE, width = 12
+        ))
+    })
+
+
+
+
+
   })
 
 
@@ -779,6 +840,21 @@ server = (function(input, output, session) {
 
 
 
+  observeEvent(input$click_erase_patient  , {
+
+    base_patient <- base_patient()
+    base_patient <- base_patient[input$select_patient != id]
+
+    saveRDS(base_patient, file = file.path(path_data, "base_patient.rds"))
+    shinyjs::hide("fiche_patient")
+
+    sendSweetAlert(
+      session = session,
+      title = "Succès !",
+      text = "La fiche a été supprimée de la base",
+      type = "success"
+    )
+  })
 
 
 
