@@ -42,9 +42,13 @@ ui2 <- function(){
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
                 title = "Info",
-                column(width = 9),
-                column(width = 3)
-            )
+                fluidRow(column(width = 12, selectInput(inputId = "select_var", label = "Sélection d'une variable", choices = c("Entêtement","Dépression", "Anxiété", "Apathie", "Désinhibé",
+                                                                                                                      "Irritable", "Argent", "Factures", "Shopping", "Jeu", "Repas",
+                                                                                                                      "Evénements", "Concentration", "Souvenir dates", "Déplacements", "Autonomie") ,multiple = FALSE))),
+
+                fluidRow(column(width = 12, plotOutput("ggplot_var") ))
+
+                )
           )
         ),
 

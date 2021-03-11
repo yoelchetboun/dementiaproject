@@ -30,9 +30,12 @@ path_data <- "/srv/OASIS_DATA/data_base_shiny/"
 
 
 
-path_work <- "~/GENERIC/dementiaproject/inst/extdata/shiny_data"
-path_root <- "~/GENERIC/dementiaproject/"
 path_user_base  <- file.path(path_root, "user_base.rds")
+path_root <- "~/GENERIC/dementiaproject/"
+
+
+diag_data <- dementiaproject::loadRData(file=file.path(path_root, "//inst/extdata/diag_data_finale.Rdata"))
+subjects_data <- dementiaproject::loadRData(file=file.path(path_root, "//inst/extdata/subjects_data.Rdata"))
 
 
 # base_patient <- data.table(id = c(0, 1),
@@ -958,14 +961,14 @@ server = (function(input, output, session) {
 
   observeEvent(input$click_visu_cut,{
 
-
     withProgress(message = 'Sélection des png à afficher...',{
-      dementiaproject::cut_selection_shiny(path_raw = file.path(path_work, "png_img"), path_selected = file.path(path_work, "png_selected"), path_processed = file.path(path_work, "png_processed"), cut_list = as.numeric(input$cut_list), process = FALSE)
+      base_patient <- base_patient()
+      id_selected_patient <- base_patient[input$select_patient == id]$id
+      path_mri_id <- paste0("mri_id_", id_selected_patient)
+      list_png <- list.files(path = file.path(path_data, path_mri_id), pattern = ".png", full.names = TRUE)
+      list_png <- unlist(map(input$cut_list, ~list_png[grepl(pattern = ., list_png)]))
+      plist <- map(list_png, function(x) {ggdraw() + draw_image(x)})
     })
-    read_path <- file.path(path_work, "png_selected")
-
-    list_png <- list.files(path = read_path, pattern = ".png", full.names = TRUE)
-    plist <- map(list_png, function(x) {ggdraw() + draw_image(x)})
 
     output$image2 <- renderPlot({
       plot_grid(plotlist = plist, labels = as.character(input$cut_list), label_size = 10, ncol = 4)
@@ -1155,14 +1158,112 @@ server = (function(input, output, session) {
           )
 
         )
-
-
-
       }
-
-
     })
   })
 
+  output$ggplot_var <- renderPlot({
+
+
+
+    diag_data$dementia_label<-factor(diag_data$dementia, labels=c("Absence de trouble","Présence de troubles"))
+    diag_data$CDR3_label<-factor(diag_data$CDR3, labels=c("Absence de trouble", "Troubles incertains ou bénins", "Troubles modérés ou sévères"))
+
+
+    select_var = c("Age", "Taille", "Poids", "Entêtement", "Dépression", "Anxiété", "Apathie", "Désinhibé",
+                   "Irritable", "Argent", "Factures", "Shopping", "Jeu", "Repas",
+                   "Evénements", "Concentration", "Souvenir dates", "Déplacements", "Autonomie")
+    dt_var = c("age_at_diagnosis","TAILLE", "POIDS","ENTETEMENT","DEPRESS", "ANXIETE", "APATHIE", "DISINHIB",
+               "IRRITAB","ARGENT", "FACTURES", "AUTONOMIE","SHOPPING","JEU","REPAS","SOUV_EVENT","CONCENTRATION","SOUV_DATES", "DEPLACEMENT")
+
+    dt_corresp <- data.table(select_var = select_var, dt_var=dt_var)
+
+    var <- dt_corresp[select_var == input$select_var]$dt_var
+
+    if (input$select_var %in% c("Argent", "Factures", "Shopping", "Jeu", "Repas",
+                                "Evénements", "Concentration", "Souvenir dates", "Déplacements")) {
+      labels_var <- c("Non","Il a rencontré des difficulté, mais a réussi seul",
+                      "Il a eu besoin d'une aide","Il a été dépendant d'une tierce personne","Ne sait pas")
+    }
+
+    if (input$select_var %in% c("Entêtement", "Dépression", "Anxiété", "Apathie", "Désinhibé",
+                                "Irritable")) {
+      labels_var <- c("Non","Oui")
+    }
+
+    gg_dt <- unique(diag_data[, .(Session  , get(var), CDR3,CDR3_label)])
+    setnames(gg_dt, "V2", var)
+    gg_dt[,nb_cat := length(.SD$Session), by = c("CDR3",  var)]
+    gg_dt[,nb_tot := length(.SD$Session), by = c("CDR3")]
+    gg_dt[, prop := nb_cat/nb_tot]
+    gg <- ggplot(unique(gg_dt[, .(get(var), CDR3_label, prop)]), aes(x = CDR3_label, y= prop, fill = V1)) + geom_bar(stat="identity", position=position_dodge()) + geom_label(aes(label = round(prop, 2)), position=position_dodge(.9), show.legend = FALSE, size = 5) +
+      theme_light() +
+      xlab("Démence") +
+      ylab("Proportion") +
+      labs(fill = "Réponse") +
+      #ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour \n gérer ses papiers, payer ses factures, etc ?") +
+      theme(
+        panel.grid = element_blank(),
+        panel.border = element_blank(),
+        axis.text.y = element_blank(),
+        axis.ticks = element_blank(),
+        legend.position = "top"
+      ) +
+      scale_fill_brewer(labels = labels_var)+
+      theme(legend.position="right")
+
+    if (input$select_var == "Entêtement") {
+      gg <-gg + ggtitle("Le patient s'entête-t-il et refuse-t-il l'aide des autres ?")
+    }
+    if (input$select_var == "Dépression") {
+      gg <- gg + ggtitle("Le patient connait-il des épisodes de dépression ou de dysphorie ?")
+    }
+    if (input$select_var == "Anxiété") {
+      gg <- gg + ggtitle("Le patient est-il anxieux ?")
+    }
+    if (input$select_var == "Apathie") {
+       gg <-gg + ggtitle("Le patient est-il apathique ?")
+    }
+    if (input$select_var == "Désinhibé") {
+       gg <-gg + ggtitle("Le patient est-il désinhibé ?")
+    }
+    if (input$select_var == "Irritable") {
+       gg <-gg + ggtitle("Le patient est-il irritable ?")
+    }
+    if (input$select_var == "Argent") {
+       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés ou besoin d'aide pour écrire un chèque, payer avec des billets... ?")
+    }
+    if (input$select_var == "Factures") {
+       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour gérer ses papiers, payer ses factures, etc... ?")
+    }
+    if (input$select_var == "Shopping") {
+       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour faire ses courses ?")
+    }
+    if (input$select_var == "Jeu") {
+       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il rencontré des difficultés pour jouer à un jeu de réflexion (bridge, échecs..) ?")
+    }
+
+    if (input$select_var == "Repas") {
+       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés lors de la préparation d'un repas équilibré ?")
+    }
+    if (input$select_var == "Evénements") {
+       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se rappeler d'événements courants ?")
+    }
+    if (input$select_var == "Concentration") {
+       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se concentrer et à comprendre un programme TV, un livre ou un magazine ?")
+    }
+    if (input$select_var == "Souvenir dates") {
+       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se souvenir de dates ?")
+    }
+    if (input$select_var == "Déplacements") {
+       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se déplacer en dehors de son quartier, à conduire, ou à prendre les transports en commun ?")
+    }
+    if (input$select_var == "Autonomie") {
+       gg <-gg + ggtitle("Quel est le niveau d'indépendance du patient ?")
+    }
+
+    return(gg)
+
+  })
 
 })
