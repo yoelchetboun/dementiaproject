@@ -64,29 +64,30 @@ ui2 <- function(){
             )
           ),
 
-          fluidRow(
-            box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Chargement du fichier IRM",
-                column(width = 9,
-                       fileInput("input_img", "Choisir un fichier .img (format nifti)",
-                                 accept = c(
-                                   "text/csv",
-                                   "text/comma-separated-values,text/plain",
-                                   ".csv",
-                                   ".img")
-                       )),
-                column(width = 3,
-                       uiOutput("contents"))
-            )
-          ),
+
+          hidden(
+            fluidRow(id = "mri_load",
+                     box(width = 12, status = 'primary', solidHeader = TRUE,
+                         title = "Chargement du fichier IRM",
+                         column(width = 8,
+                                fileInput("input_img", "Choisir un fichier .img (format nifti)",
+                                          accept = c(
+                                            "text/csv",
+                                            "text/comma-separated-values,text/plain",
+                                            ".csv",
+                                            ".img"), width = NULL,
+                                )),
+                         column(width = 4,
+                                uiOutput("contents"))
+                     )
+            )),
 
           hidden(
             fluidRow(id = "cut_selection",
                      box(width = 12, status = 'primary', solidHeader = TRUE,
                          title = "Visualisation des coupes",
-                         uiOutput("cut_select_ui"),
-                         checkboxInput("pre_process", label = "Pre-process ?", value = FALSE, width = NULL),
-                         div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_visu_cut", "Sélectionner"))
+                         column(width = 12, uiOutput("cut_select_ui"),
+                         div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_visu_cut", "Sélectionner")))
 
                      )
             )
@@ -117,9 +118,9 @@ ui2 <- function(){
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Prévisision de diagnostic par questionnaire",
-                column(width = 9),
-                column(width = 3)
+                title = "Lancement de la prévision de démence",
+                column(width = 12,
+                div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class", "Lancement")))
             )
           )
         ),
@@ -138,10 +139,17 @@ ui2 <- function(){
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Prévisision de diagnostic par IRM",
-                column(width = 9),
-                column(width = 3)
-            )
+                title = "Lancement de la prévision de démence",
+                column(width = 12,
+                div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_irm", "Lancement"))),
+                br(),
+                br(),
+                br(),
+                uiOutput("prev")
+            ),
+            box(width = 12, status = 'primary', solidHeader = TRUE,
+                title = "Prévisins pour chaque coupe",
+                uiOutput("pred_tabs"))
           )
         ),
 
