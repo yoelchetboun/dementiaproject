@@ -1191,6 +1191,11 @@ server = (function(input, output, session) {
       labels_var <- c("Non","Oui")
     }
 
+    if (input$select_var == "Autonomie") {
+      labels_var <- c("En capacité de vivre seul", "Requiert une assistance pour des activités particulièrement complexes", "Requiert une assistace pour des activités quotidiennes", "Dépendant", "Ne sait pas")
+    }
+
+
     gg_dt <- unique(diag_data[, .(Session  , get(var), CDR3,CDR3_label)])
     setnames(gg_dt, "V2", var)
     gg_dt[,nb_cat := length(.SD$Session), by = c("CDR3",  var)]
