@@ -41,8 +41,8 @@ ui2 <- function(){
 
           fluidRow(
             box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Info",
-                fluidRow(column(width = 12, selectInput(inputId = "select_var", label = "Sélection d'une variable", choices = c("Entêtement","Dépression", "Anxiété", "Apathie", "Désinhibé",
+                title = "Informations sur la base de patients",
+                fluidRow(column(width = 12, selectInput(inputId = "select_var", label = "Sélectionner une variable d'intérêt :", choices = c("Age", "Taille", "Poids", "Entêtement","Dépression", "Anxiété", "Apathie", "Désinhibé",
                                                                                                                       "Irritable", "Argent", "Factures", "Shopping", "Jeu", "Repas",
                                                                                                                       "Evénements", "Concentration", "Souvenir dates", "Déplacements", "Autonomie") ,multiple = FALSE))),
 
@@ -73,6 +73,7 @@ ui2 <- function(){
             fluidRow(id = "mri_load",
                      box(width = 12, status = 'primary', solidHeader = TRUE,
                          title = "Chargement du fichier IRM",
+                         fluidRow(
                          column(width = 8,
                                 fileInput("input_img", "Choisir un fichier .img (format nifti)",
                                           accept = c(
@@ -82,7 +83,7 @@ ui2 <- function(){
                                             ".img"), width = NULL,
                                 )),
                          column(width = 4,
-                                uiOutput("contents"))
+                                uiOutput("contents")))
                      )
             )),
 
@@ -90,8 +91,10 @@ ui2 <- function(){
             fluidRow(id = "cut_selection",
                      box(width = 12, status = 'primary', solidHeader = TRUE,
                          title = "Visualisation des coupes",
+                         fluidRow(
+
                          column(width = 12, uiOutput("cut_select_ui"),
-                         div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_visu_cut", "Sélectionner")))
+                         div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("click_visu_cut", "Sélectionner"))))
 
                      )
             )
@@ -119,12 +122,17 @@ ui2 <- function(){
             )
           ),
 
+          hidden(
 
-          fluidRow(
-            box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Lancement de la prévision de démence",
-                column(width = 12,
-                div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class", "Lancement")))
+            fluidRow(
+              box(width = 12, status = 'primary', solidHeader = TRUE,
+                  title = "Lancement de la prévision de démence",
+                  fluidRow(column(width = 12,
+                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class", "Lancement"))),
+                           br(),
+                           br(),
+                           br())
+              )
             )
           )
         ),
@@ -141,20 +149,27 @@ ui2 <- function(){
             )
           ),
 
-          fluidRow(
-            box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Lancement de la prévision de démence",
-                column(width = 12,
-                div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_irm", "Lancement"))),
-                br(),
-                br(),
-                br(),
-                uiOutput("prev")
-            ),
-            box(width = 12, status = 'primary', solidHeader = TRUE,
-                title = "Prévisins pour chaque coupe",
-                uiOutput("pred_tabs"))
+          hidden(
+            fluidRow(id = "ihm_prev_irm",
+                     box(width = 12, status = 'primary', solidHeader = TRUE,
+                         title = "Lancement de la prévision de démence",
+                         fluidRow(
+                           column(width = 12,
+                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_irm", "Lancement")))),
+                         fluidRow(br(), uiOutput("prev"))
+                     ))
+          ),
+
+
+
+          hidden(
+            fluidRow(id = "prev_coupe",
+                     box(width = 12, status = 'primary', solidHeader = TRUE,
+                         title = "Prévision par coupe",
+                         uiOutput("pred_tabs"))
+            )
           )
+
         ),
 
 
@@ -189,7 +204,7 @@ ui <- shinydashboard::dashboardPage(
                                    #onglets
                                    shinydashboard::sidebarMenu(id = "tabs",
                                                                shinydashboard::menuItem("Gestion des patients",tabName = "patient"),
-                                                               shinydashboard::menuItem("Informations patient",tabName = "info"),
+                                                               shinydashboard::menuItem("Informations base patients",tabName = "info"),
                                                                shinydashboard::menuItem("Chargement des IRM",tabName = "irm"),
                                                                shinydashboard::menuItem("Aide à la décision (Données Patient)",tabName = "prev_base"),
                                                                shinydashboard::menuItem("Aide à la décision (IRM)",tabName = "prev_irm"),

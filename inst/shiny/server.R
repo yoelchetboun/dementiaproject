@@ -16,6 +16,8 @@ library(tidyverse)
 library(cowplot)
 library(magick)
 library(shinyWidgets)
+library(tensorflow)
+library(keras)
 
 
 source("ui.R")
@@ -347,7 +349,7 @@ server = (function(input, output, session) {
       base_patient <- base_patient()
       list_input <- base_patient$id
       names(list_input) <- paste0(base_patient$first_name, " " ,base_patient$last_name)
-      selectizeInput("select_patient", "",
+      selectizeInput("select_patient", NULL,
                      choices = list_input, selected = "0", multiple = FALSE)
     })
   })
@@ -371,6 +373,10 @@ server = (function(input, output, session) {
       shinyjs::hide("patient_selected_rem3")
       shinyjs::hide("cut_selection")
       shinyjs::hide("cut_visu")
+      shinyjs::hide("prev_irm")
+      shinyjs::hide("ihm_prev")
+      shinyjs::hide("ihm_prev_irm")
+      shinyjs::hide("prev_coupe")
 
 
 
@@ -428,8 +434,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "bills", label = NULL, choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,  status = "danger", fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,  status = "danger", fill = TRUE
                    ))
           ),
           fluidRow(
@@ -438,8 +444,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "taxes",  label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,  status = "danger",  fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,  status = "danger",  fill = TRUE
                    ))
           ),
           fluidRow(
@@ -448,8 +454,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "shopping", label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,  status = "danger",  fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,  status = "danger",  fill = TRUE
                    ))
           ),
           fluidRow(
@@ -458,8 +464,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "games", label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,   status = "danger", fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,   status = "danger", fill = TRUE
                    ))
           ),
           fluidRow(
@@ -479,8 +485,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "event",  label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,   status = "danger", fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,   status = "danger", fill = TRUE
                    ))
           ),
           fluidRow(
@@ -489,8 +495,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "concentration",  label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,   status = "danger", fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,   status = "danger", fill = TRUE
                    ))
           ),
           fluidRow(
@@ -499,8 +505,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "remdates",   label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,  status = "danger",  fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,  status = "danger",  fill = TRUE
                    ))
           ),
           fluidRow(
@@ -509,8 +515,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "travel", label = NULL,choiceValues = c(0, 1, 2, 3, 8),
-                     choiceNames = liste_choix,
-                     inline = TRUE,  status = "danger", fill = TRUE
+                                       choiceNames = liste_choix,
+                                       inline = TRUE,  status = "danger", fill = TRUE
                    ))
           ),
           fluidRow(
@@ -519,8 +525,8 @@ server = (function(input, output, session) {
           fluidRow(
             column(width = 12, h5(),
                    prettyRadioButtons( inputId = "independ", label = NULL,choiceValues = c(1, 2, 3, 4, 9),
-                     choiceNames = c("En capacité de vivre seul", "Requiert une assistance pour des activités particulièrement complexes", "Requiert une assistace pour des activités quotidiennes", "Dépendant", "Ne sait pas"),
-                     inline = FALSE,  status = "danger", fill = TRUE
+                                       choiceNames = c("En capacité de vivre seul", "Requiert une assistance pour des activités particulièrement complexes", "Requiert une assistace pour des activités quotidiennes", "Dépendant", "Ne sait pas"),
+                                       inline = FALSE,  status = "danger", fill = TRUE
                    ))
           ),
 
@@ -697,6 +703,12 @@ server = (function(input, output, session) {
       shinyjs::show("patient_selected_rem")
       shinyjs::show("patient_selected_rem2")
       shinyjs::show("patient_selected_rem3")
+      shinyjs::show("ihm_prev")
+      shinyjs::show("ihm_prev_irm")
+
+      output$prev = renderUI({
+        NULL
+      })
 
       path_mri_id <- paste0("mri_id_", base_patient[input$select_patient == id]$id)
 
@@ -709,6 +721,7 @@ server = (function(input, output, session) {
         nb_cut <- 0
         shinyjs::hide("cut_selection")
         shinyjs::hide("cut_visu")
+        shinyjs::hide("prev_coupe")
 
       }
       input_file_rv$nb_coupe <- nb_cut
@@ -721,14 +734,56 @@ server = (function(input, output, session) {
       base_patient <- base_patient()
       selected_patient <- base_patient[input$select_patient == id]
 
+      input$select_var
+      select_var = c("Age", "Taille", "Poids", "Entêtement", "Dépression", "Anxiété", "Apathie", "Désinhibé",
+                     "Irritable", "Argent", "Factures", "Shopping", "Jeu", "Repas",
+                     "Evénements", "Concentration", "Souvenir dates", "Déplacements", "Autonomie")
+      dt_var = c("age_at_diagnosis","size", "weight","agit","depress","anxiety","apathy","disinhib",
+                "irr","bills","taxes","shopping","games","meal","event","concentration","remdates","travel", "independ")
+      dt_corresp <- data.table(select_var = select_var, dt_var=dt_var)
+      var <- dt_corresp[select_var == input$select_var]$dt_var
+
+      if (var %in% c("bills", "taxes", "shopping", "games", "meal", "event", "concentration", "remdates","travel", "independ"))
+      {
+        dt_corresp_value <- data.table(value = c(0, 1, 2, 3, 8),
+                                       value_label = c("Non","Il a rencontré des difficulté, mais a réussi seul",
+                                                       "Il a eu besoin d'une aide","Il a été dépendant d'une tierce personne","Ne sait pas"))
+      }
+
+      if (var %in% c("independ"))
+      {
+        dt_corresp_value <- data.table(value = c(1, 2, 3, 4, 9),
+                                       value_label = c("En capacité de vivre seul", "Requiert une assistance pour des activités particulièrement complexes", "Requiert une assistace pour des activités quotidiennes", "Dépendant", "Ne sait pas")
+        )
+      }
+      if (var %in% c("agit", "depress", "anxiety", "apathy", "disinhib", "irr"))
+      {
+        dt_corresp_value <- data.table(value = c(TRUE, FALSE),
+                                       value_label = c("Oui","Non"))
+      }
+
+
+      if (!var %in% c("age_at_diagnosis", "size", "weight")) {
+        var_to_display <- dt_corresp_value[value == selected_patient[, .(get(var))]$V1]$value_label
+      } else {
+        var_to_display <- selected_patient[, .(get(var))]$V1
+      }
+
+
       box(
         width = 12,
         status = "primary",  solidHeader = TRUE,
-        title = "Patient séléctionné",
-          infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
-            paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
-            color = "light-blue", fill =TRUE, width = 12
-          ))
+        title = "Patient sélectionné",
+        #tags$head(tags$style(HTML(".small-box {height: 100px}"))),
+        fluidRow (tags$head(tags$style(HTML('.info-box {min-height: 90px;} .info-box-content {padding-top: 15px; padding-bottom: 15px;}'))),
+
+                  infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                          paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                          color = "light-blue", fill =TRUE, width = 6
+                  ),
+                  tags$head(tags$style(HTML(".small-box {height: 90px}"))),
+                  valueBox(tags$p(paste0(as.character(var_to_display)), style = "font-size: 50%;"), paste0("Variable ", input$select_var, " du patient sélectionné"), icon = icon("question", lib = "font-awesome"), color = "olive", width = 6)
+        ))
     })
 
     output$patient_select_reminder = renderUI({
@@ -746,13 +801,15 @@ server = (function(input, output, session) {
       box(
         width = 12,
         status = "primary",  solidHeader = TRUE,
-        title = "Patient séléctionné",
-        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
-                paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
-                color = "light-blue", fill =TRUE, width = 8
-        ),
-        valueBox(tags$p(paste0(as.character(input_file_rv$nb_coupe),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes en base pour ce patient", icon = icon("brain", lib = "font-awesome"), color = "olive", width = 4)
-        )
+        title = "Patient sélectionné",
+        fluidRow(tags$head(tags$style(HTML('.info-box {min-height: 90px;} .info-box-content {padding-top: 15px; padding-bottom: 15px;}'))),
+                 infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                         paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                         color = "light-blue", fill =TRUE, width = 8
+                 ),
+                 tags$head(tags$style(HTML(".small-box {height: 90px}"))),
+                 valueBox(tags$p(paste0(as.character(input_file_rv$nb_coupe),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes en base pour ce patient", icon = icon("brain", lib = "font-awesome"), color = "olive", width = 4)
+        ))
     })
 
     output$patient_select_reminder2 = renderUI({
@@ -761,11 +818,12 @@ server = (function(input, output, session) {
       box(
         width = 12,
         status = "primary",  solidHeader = TRUE,
-        title = "Patient séléctionné",
-        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
-                paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
-                color = "light-blue", fill =TRUE, width = 12
-        ))
+        title = "Patient sélectionné",
+        fluidRow(tags$head(tags$style(HTML('.info-box {min-height: 90px;} .info-box-content {padding-top: 15px; padding-bottom: 15px;}'))),
+                 infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+                         paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
+                         color = "light-blue", fill =TRUE, width = 12
+                 )))
     })
     output$patient_select_reminder3 = renderUI({
       base_patient <- base_patient()
@@ -773,11 +831,12 @@ server = (function(input, output, session) {
       box(
         width = 12,
         status = "primary",  solidHeader = TRUE,
-        title = "Patient séléctionné",
-        infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
+        title = "Patient sélectionné",
+        fluidRow(tags$head(tags$style(HTML('.info-box {min-height: 90px;} .info-box-content {padding-top: 15px; padding-bottom: 15px;}'))),
+          infoBox(title = paste0(selected_patient$first_name, "  ", selected_patient$last_name),
                 paste0(selected_patient$genre , " - ", selected_patient$age_at_diagnosis, " ans - ", selected_patient$size , " m"),icon = icon("users", lib = "font-awesome"),
                 color = "light-blue", fill =TRUE, width = 12
-        ))
+        )))
     })
   })
 
@@ -839,29 +898,29 @@ server = (function(input, output, session) {
       genre <-  "Homme"
     }
     modif_patient <- data.table(id = selected_patient$id,
-                              first_name = input$first_name_modif,
-                              last_name = input$last_name_modif,
-                              age_at_diagnosis = input$age_at_diagnosis_modif,
-                              date_entry = as.character(input$date_admin_modif),
-                              genre = genre,
-                              size = input$size_modif,
-                              weight = input$weight_modif,
-                              agit = input$agit_modif,
-                              depress = input$depress_modif,
-                              anxiety = input$anxiety_modif,
-                              apathy = input$apathy_modif,
-                              disinhib = input$disinhib_modif,
-                              irr = input$irr_modif,
-                              bills = input$bills_modif,
-                              taxes = input$taxes_modif,
-                              shopping =input$shopping_modif,
-                              games = input$games_modif,
-                              meal =input$meal_modif,
-                              event = input$event_modif,
-                              concentration = input$concentration_modif,
-                              remdates = input$remdates_modif,
-                              travel = input$travel_modif,
-                              independ = input$independ_modif)
+                                first_name = input$first_name_modif,
+                                last_name = input$last_name_modif,
+                                age_at_diagnosis = input$age_at_diagnosis_modif,
+                                date_entry = as.character(input$date_admin_modif),
+                                genre = genre,
+                                size = input$size_modif,
+                                weight = input$weight_modif,
+                                agit = input$agit_modif,
+                                depress = input$depress_modif,
+                                anxiety = input$anxiety_modif,
+                                apathy = input$apathy_modif,
+                                disinhib = input$disinhib_modif,
+                                irr = input$irr_modif,
+                                bills = input$bills_modif,
+                                taxes = input$taxes_modif,
+                                shopping =input$shopping_modif,
+                                games = input$games_modif,
+                                meal =input$meal_modif,
+                                event = input$event_modif,
+                                concentration = input$concentration_modif,
+                                remdates = input$remdates_modif,
+                                travel = input$travel_modif,
+                                independ = input$independ_modif)
 
     base_patient <- rbind(base_patient[id != selected_patient$id], modif_patient)
     saveRDS(base_patient, file = file.path(path_data, "base_patient.rds"))
@@ -953,7 +1012,7 @@ server = (function(input, output, session) {
     output$cut_select_ui <- renderUI({
       list_input <- seq(1, input_file_rv$nb_coupe, 1)
       names(list_input) <- paste0("Coupe numéro ", list_input)
-      selectizeInput("cut_list", "Selection des coupes à afficher :",
+      selectizeInput("cut_list", "Sélection des coupes à afficher :",
                      choices = list_input, selected = c("130", "135", "140", "145"), multiple = TRUE, options = list(maxItems = 4))})
 
   })
@@ -992,9 +1051,10 @@ server = (function(input, output, session) {
       if (!dir.exists(file.path(path_data, path_mri_id )))
       {
         print("attention il n'y a pas d'irm à prévoir pour ce patient")
-        output$prev = renderText({
-          paste("<b>Attention, aucune IRM chargée pour ce patient</b>")
+        output$prev = renderUI({
+          valueBox(tags$p("Attention", style = "font-size: 80%;"), subtitle = "Aucune IRM chargée pour ce patient", icon = icon("exclamation", lib = "font-awesome"), color = "yellow", width = 12)
         })
+
       } else {
         #on lance la prev avec le bon modele
         #on déplace les coupes
@@ -1002,7 +1062,7 @@ server = (function(input, output, session) {
         file.remove(list.files(file.path(path_dir_pred, "to_pred"), pattern = ".png", full.names = TRUE, recursive = TRUE))
         setProgress(value = 0.3 , message = "Extraction des png..")
 
-        cut_list<- c(138, 140, 142, 144)
+        cut_list<- c(141, 142, 143, 144)
         list_png <- unlist(map(cut_list, ~list.files(file.path(path_data, path_mri_id ), pattern = paste0("z", ., ".png") , full.names = TRUE, recursive = TRUE)))
         map(list_png, ~file.copy(from = ., to = file.path(path_dir_pred, "to_pred")))
 
@@ -1035,15 +1095,11 @@ server = (function(input, output, session) {
           output$prev = renderUI({
             valueBox(tags$p("Patient Saint", style = "font-size: 80%;"), paste0("Probabilité de non démence (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred, 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
 
-          # output$prev = renderText({
-          #   paste("<p style='color:green;'><b>Saint</b> - Probabilité moyenne de : ", round(100*mean_pred, 2), "%")
+            # output$prev = renderText({
+            #   paste("<p style='color:green;'><b>Saint</b> - Probabilité moyenne de : ", round(100*mean_pred, 2), "%")
           })
         } else {
-          # output$prev = renderUI({
-          # infoBox(title = "Dément",
-          #         paste0("Probabilité moyenne de : ", 1-mean_pred), icon = icon("users", lib = "font-awesome"),
-          #         color = "light-blue", fill =TRUE, width = 12) })
-          output$prev = renderText({
+          output$prev = renderUI({
             valueBox(tags$p("Patient atteint de Démence", style = "font-size: 80%;"), paste0("Probabilité de non démence (moyenne des probabilités des 4 coupes) : ", round(100*(1-mean_pred), 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
           })
         }
@@ -1158,8 +1214,13 @@ server = (function(input, output, session) {
           )
 
         )
+
+        shinyjs::show("prev_coupe")
+
       }
     })
+
+
   })
 
   output$ggplot_var <- renderPlot({
@@ -1167,14 +1228,14 @@ server = (function(input, output, session) {
 
 
     diag_data$dementia_label<-factor(diag_data$dementia, labels=c("Absence de trouble","Présence de troubles"))
-    diag_data$CDR3_label<-factor(diag_data$CDR3, labels=c("Absence de trouble", "Troubles incertains ou bénins", "Troubles modérés ou sévères"))
+    diag_data$CDR3_label<-factor(diag_data$CDR3, labels=c("Absence de trouble", "Troubles incertains", "Troubles bénins, modérés ou sévères"))
 
 
     select_var = c("Age", "Taille", "Poids", "Entêtement", "Dépression", "Anxiété", "Apathie", "Désinhibé",
                    "Irritable", "Argent", "Factures", "Shopping", "Jeu", "Repas",
                    "Evénements", "Concentration", "Souvenir dates", "Déplacements", "Autonomie")
     dt_var = c("age_at_diagnosis","TAILLE", "POIDS","ENTETEMENT","DEPRESS", "ANXIETE", "APATHIE", "DISINHIB",
-               "IRRITAB","ARGENT", "FACTURES", "AUTONOMIE","SHOPPING","JEU","REPAS","SOUV_EVENT","CONCENTRATION","SOUV_DATES", "DEPLACEMENT")
+               "IRRITAB","ARGENT", "FACTURES","SHOPPING","JEU","REPAS","SOUV_EVENT","CONCENTRATION","SOUV_DATES",  "DEPLACEMENT", "AUTONOMIE")
 
     dt_corresp <- data.table(select_var = select_var, dt_var=dt_var)
 
@@ -1195,78 +1256,90 @@ server = (function(input, output, session) {
       labels_var <- c("En capacité de vivre seul", "Requiert une assistance pour des activités particulièrement complexes", "Requiert une assistace pour des activités quotidiennes", "Dépendant", "Ne sait pas")
     }
 
-
-    gg_dt <- unique(diag_data[, .(Session  , get(var), CDR3,CDR3_label)])
-    setnames(gg_dt, "V2", var)
-    gg_dt[,nb_cat := length(.SD$Session), by = c("CDR3",  var)]
-    gg_dt[,nb_tot := length(.SD$Session), by = c("CDR3")]
-    gg_dt[, prop := nb_cat/nb_tot]
-    gg <- ggplot(unique(gg_dt[, .(get(var), CDR3_label, prop)]), aes(x = CDR3_label, y= prop, fill = V1)) + geom_bar(stat="identity", position=position_dodge()) + geom_label(aes(label = round(prop, 2)), position=position_dodge(.9), show.legend = FALSE, size = 5) +
-      theme_light() +
-      xlab("Démence") +
-      ylab("Proportion") +
-      labs(fill = "Réponse") +
-      #ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour \n gérer ses papiers, payer ses factures, etc ?") +
-      theme(
-        panel.grid = element_blank(),
-        panel.border = element_blank(),
-        axis.text.y = element_blank(),
-        axis.ticks = element_blank(),
-        legend.position = "top"
-      ) +
-      scale_fill_brewer(labels = labels_var)+
-      theme(legend.position="right")
-
-    if (input$select_var == "Entêtement") {
-      gg <-gg + ggtitle("Le patient s'entête-t-il et refuse-t-il l'aide des autres ?")
-    }
-    if (input$select_var == "Dépression") {
-      gg <- gg + ggtitle("Le patient connait-il des épisodes de dépression ou de dysphorie ?")
-    }
-    if (input$select_var == "Anxiété") {
-      gg <- gg + ggtitle("Le patient est-il anxieux ?")
-    }
-    if (input$select_var == "Apathie") {
-       gg <-gg + ggtitle("Le patient est-il apathique ?")
-    }
-    if (input$select_var == "Désinhibé") {
-       gg <-gg + ggtitle("Le patient est-il désinhibé ?")
-    }
-    if (input$select_var == "Irritable") {
-       gg <-gg + ggtitle("Le patient est-il irritable ?")
-    }
-    if (input$select_var == "Argent") {
-       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés ou besoin d'aide pour écrire un chèque, payer avec des billets... ?")
-    }
-    if (input$select_var == "Factures") {
-       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour gérer ses papiers, payer ses factures, etc... ?")
-    }
-    if (input$select_var == "Shopping") {
-       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour faire ses courses ?")
-    }
-    if (input$select_var == "Jeu") {
-       gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il rencontré des difficultés pour jouer à un jeu de réflexion (bridge, échecs..) ?")
+    if (input$select_var == "Age") {
+      gg <-  ggplot(diag_data[, .(CDR3_label , age_at_diagnosis )], aes(fill = CDR3_label, x= age_at_diagnosis)) + geom_density(alpha=0.4) + ggtitle("Distribution de l'âge au moment du diagnostic") +
+        scale_fill_discrete(name = "Démence :") + labs(x = "Age au moment du diagnostic", y = "Distribution") + theme_minimal() + theme(legend.position="bottom")
     }
 
-    if (input$select_var == "Repas") {
-       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés lors de la préparation d'un repas équilibré ?")
+    if (input$select_var == "Taille") {
+      gg <-  ggplot(diag_data[, .(CDR3_label , TAILLE     )], aes(fill = CDR3_label, x= TAILLE    )) + geom_density(alpha=0.4) + ggtitle("Distribution de la taille des patients") +
+        scale_fill_discrete(name = "Démence :") + labs(x = "Taille du patient [cm]", y = "Distribution") + theme_minimal() + theme(legend.position="bottom")
     }
-    if (input$select_var == "Evénements") {
-       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se rappeler d'événements courants ?")
-    }
-    if (input$select_var == "Concentration") {
-       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se concentrer et à comprendre un programme TV, un livre ou un magazine ?")
-    }
-    if (input$select_var == "Souvenir dates") {
-       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se souvenir de dates ?")
-    }
-    if (input$select_var == "Déplacements") {
-       gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se déplacer en dehors de son quartier, à conduire, ou à prendre les transports en commun ?")
-    }
-    if (input$select_var == "Autonomie") {
-       gg <-gg + ggtitle("Quel est le niveau d'indépendance du patient ?")
+    if (input$select_var == "Poids") {
+      gg <-  ggplot(diag_data[, .(CDR3_label , POIDS      )], aes(fill = CDR3_label, x= POIDS     )) + geom_density(alpha=0.4) + ggtitle("Distribution du poids des patients") +
+        scale_fill_discrete(name = "Démence :") + labs(x = "Poids du patient [Kg]", y = "Distribution") + theme_minimal() + theme(legend.position="bottom")
     }
 
+    if (!input$select_var %in% c("Age", "Taille", "Poids")) {
+      gg_dt <- unique(diag_data[, .(Session  , get(var), CDR3,CDR3_label)])
+      setnames(gg_dt, "V2", var)
+      gg_dt[,nb_cat := length(.SD$Session), by = c("CDR3",  var)]
+      gg_dt[,nb_tot := length(.SD$Session), by = c("CDR3")]
+      gg_dt[, prop := nb_cat/nb_tot]
+      gg <- ggplot(unique(gg_dt[, .(get(var), CDR3_label, prop)]), aes(x = CDR3_label, y= prop, fill = V1)) + geom_bar(stat="identity", position=position_dodge()) + geom_label(aes(label = round(prop, 2)), position=position_dodge(.9), show.legend = FALSE, size = 5) +
+        theme_light() +
+        xlab("Démence") +
+        ylab("Proportion") +
+        labs(fill = "Réponse :") +
+        theme(
+          panel.grid = element_blank(),
+          panel.border = element_blank(),
+          axis.text.y = element_blank(),
+          axis.ticks = element_blank()
+        ) +
+        scale_fill_brewer(labels = labels_var)+
+        theme(legend.position="bottom")
+
+      if (input$select_var == "Entêtement") {
+        gg <-gg + ggtitle("Le patient s'entête-t-il et refuse-t-il l'aide des autres ?")
+      }
+      if (input$select_var == "Dépression") {
+        gg <- gg + ggtitle("Le patient connait-il des épisodes de dépression ou de dysphorie ?")
+      }
+      if (input$select_var == "Anxiété") {
+        gg <- gg + ggtitle("Le patient est-il anxieux ?")
+      }
+      if (input$select_var == "Apathie") {
+        gg <-gg + ggtitle("Le patient est-il apathique ?")
+      }
+      if (input$select_var == "Désinhibé") {
+        gg <-gg + ggtitle("Le patient est-il désinhibé ?")
+      }
+      if (input$select_var == "Irritable") {
+        gg <-gg + ggtitle("Le patient est-il irritable ?")
+      }
+      if (input$select_var == "Argent") {
+        gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés ou besoin d'aide pour écrire un chèque, payer avec des billets... ?")
+      }
+      if (input$select_var == "Factures") {
+        gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour gérer ses papiers, payer ses factures, etc... ?")
+      }
+      if (input$select_var == "Shopping") {
+        gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il eu des difficultés pour faire ses courses ?")
+      }
+      if (input$select_var == "Jeu") {
+        gg <-gg + ggtitle("Dans les 4 dernières semaines, le patient a-t-il rencontré des difficultés pour jouer à un jeu de réflexion (bridge, échecs..) ?")
+      }
+      if (input$select_var == "Repas") {
+        gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés lors de la préparation d'un repas équilibré ?")
+      }
+      if (input$select_var == "Evénements") {
+        gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se rappeler d'événements courants ?")
+      }
+      if (input$select_var == "Concentration") {
+        gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se concentrer et à comprendre un programme TV, un livre ou un magazine ?")
+      }
+      if (input$select_var == "Souvenir dates") {
+        gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se souvenir de dates ?")
+      }
+      if (input$select_var == "Déplacements") {
+        gg <-gg + ggtitle("Durant les 4 dernières semaines, le patient a-t-il eu des difficultés à se déplacer\nen dehors de son quartier, à conduire, ou à prendre les transports en commun ?")
+      }
+      if (input$select_var == "Autonomie") {
+        gg <-gg + ggtitle("Quel est le niveau d'indépendance du patient ?")
+      }
+
+    }
     return(gg)
 
   })
