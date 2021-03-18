@@ -1,73 +1,3 @@
-library(Rshinytemplate)
-library(shinydashboard)
-library(glue)
-library(shinyjs)
-library(ggplot2)
-library(shiny)
-library(viridis)
-library(data.table)
-library(dplyr)
-library(dygraphs)
-library(purrr)
-library(grid)
-library(gridExtra)
-library(shinycssloaders)
-library(tidyverse)
-library(cowplot)
-library(magick)
-library(shinyWidgets)
-library(tensorflow)
-library(keras)
-
-
-source("ui.R")
-
-options(shiny.maxRequestSize = 30*1024^2)
-
-print("Lancement du Shiny")
-print(getwd())
-
-#path_root <- "/root/"
-path_data <- "/srv/OASIS_DATA/data_base_shiny/"
-
-
-
-path_user_base  <- file.path(path_root, "user_base.rds")
-path_root <- "~/GENERIC/dementiaproject/"
-
-
-diag_data <- dementiaproject::loadRData(file=file.path(path_root, "//inst/extdata/diag_data_finale.Rdata"))
-subjects_data <- dementiaproject::loadRData(file=file.path(path_root, "//inst/extdata/subjects_data.Rdata"))
-
-
-# base_patient <- data.table(id = c(0, 1),
-#                            first_name = c("Nouveaux","James"),
-#                            last_name = c("Patient", "Bond"),
-#                            age_at_diagnosis = c(NA,30),
-#                            date_entry = c(NA, as.character(Sys.Date())),
-#                            genre = c(NA,"Homme"),
-#                            size = c(NA, 1.80),
-#                            weight = c(NA, 80),
-#                            agit = c(NA,TRUE),
-#                            depress = c(NA,FALSE),
-#                            anxiety = c(NA,TRUE),
-#                            apathy = c(NA,FALSE),
-#                            disinhib = c(NA,TRUE),
-#                            irr = c(NA,TRUE),
-#                            bills = c(NA,0),
-#                            taxes = c(NA,0),
-#                            shopping = c(NA,0),
-#                            games = c(NA,0),
-#                            meal = c(NA,0),
-#                            event = c(NA,0),
-#                            concentration = c(NA,0),
-#                            remdates = c(NA,0),
-#                            travel = c(NA,0),
-#                            independ = c(NA,1))
-#
-#
-# saveRDS(base_patient, file = file.path(path_data, "base_patient.rds"))
-
 
 
 server = (function(input, output, session) {
@@ -299,7 +229,6 @@ server = (function(input, output, session) {
       message <- user_modify_password(path_user_base = filePath, user_to_modify = user_info()$user, old_password = input$old_password, new_password1 = input$new_password1, new_password2 = input$new_password2)
     } else {
       message <- message_password
-
     }
 
     output$change_password_message <- renderText({ message })
@@ -333,7 +262,7 @@ server = (function(input, output, session) {
 
   #Reactives
 
-  input_file_rv <- reactiveValues(data_path = NULL, nb_coupe =0)
+  input_file_rv <- reactiveValues(data_path = NULL, nb_coupe =0, clear = TRUE)
 
   #on lit régulierement le fichier base patient pour voir s'il y a des modifs
   base_patient <- reactiveFileReader(1000,
@@ -358,6 +287,8 @@ server = (function(input, output, session) {
   observeEvent(input$click_patient  , {
     shinyjs::hide("cut_visu")
     base_patient <- base_patient()
+    input_file_rv$data_path <- NULL
+
     selected_patient <- base_patient[input$select_patient == id]
     liste_choix <- c("Non", "Difficultés mais a réussi", "A eu besoin d'une aide", "Dépendant d'une tierce personne", "Ne sait pas")
 
@@ -376,6 +307,8 @@ server = (function(input, output, session) {
       shinyjs::hide("prev_irm")
       shinyjs::hide("ihm_prev")
       shinyjs::hide("ihm_prev_irm")
+      shinyjs::hide("ihm_prev_patient")
+      shinyjs::hide("prev_coupe")
       shinyjs::hide("prev_coupe")
 
 
@@ -705,6 +638,13 @@ server = (function(input, output, session) {
       shinyjs::show("patient_selected_rem3")
       shinyjs::show("ihm_prev")
       shinyjs::show("ihm_prev_irm")
+      shinyjs::show("ihm_prev_patient")
+      shinyjs::hide("prev_coupe")
+
+
+      output$prev_patient = renderUI({
+        NULL
+        })
 
       output$prev = renderUI({
         NULL
@@ -725,6 +665,20 @@ server = (function(input, output, session) {
 
       }
       input_file_rv$nb_coupe <- nb_cut
+
+
+      # output$file_in <- renderUI({fileInput("input_img", "Choisir un fichier .img (format nifti)",
+      #                                       accept = c(
+      #                                         "text/csv",
+      #                                         "text/comma-separated-values,text/plain",
+      #                                         ".csv",
+      #                                         ".img"), width = NULL,
+      # )})
+
+      reset('input_img')
+      input_file_rv$clear <- TRUE
+      input_file_rv$data_path <- NULL
+      output$contents <-  renderUI({NULL})
 
 
     }
@@ -883,6 +837,10 @@ server = (function(input, output, session) {
       type = "success"
     )
     shinyjs::hide("fiche_patient")
+    shinyjs::hide("patient_selected")
+    shinyjs::hide("patient_selected_rem")
+    shinyjs::hide("patient_selected_rem2")
+    shinyjs::hide("patient_selected_rem3")
 
   })
 
@@ -926,6 +884,11 @@ server = (function(input, output, session) {
     saveRDS(base_patient, file = file.path(path_data, "base_patient.rds"))
     shinyjs::hide("fiche_patient")
 
+    shinyjs::hide("patient_selected")
+    shinyjs::hide("patient_selected_rem")
+    shinyjs::hide("patient_selected_rem2")
+    shinyjs::hide("patient_selected_rem3")
+
     sendSweetAlert(
       session = session,
       title = "Succès !",
@@ -957,47 +920,123 @@ server = (function(input, output, session) {
   })
 
 
+  observeEvent(input$input_img$datapath, {
 
-  output$contents <- renderUI({
+    print("Event!")
+    print(input$input_img$datapath)
+
+    if(input_file_rv$clear) {
+
+    #browser()
+    #inFile <- input$input_img
+    input_file_rv$data_path <- input$input_img$datapath
 
 
-    inFile <- input$input_img
-    if (is.null(inFile))
-      return(NULL)
-
-    #menage dans le dir de destination
-    base_patient <- base_patient()
-    id_selected_patient <- base_patient[input$select_patient == id]$id
-    path_mri_id <- paste0("mri_id_", id_selected_patient)
-
-    if (!dir.exists(file.path(path_data, path_mri_id )))
-    {
-      dir.create(file.path(path_data, path_mri_id ))
+    if (is.null(input_file_rv$data_path )) {
+      output$contents <-  renderUI({NULL})
     } else {
-      file.remove(list.files(file.path(path_data, path_mri_id ), pattern = ".png", full.names = TRUE))
+
+
+
+      #menage dans le dir de destination
+      base_patient <- base_patient()
+      id_selected_patient <- base_patient[input$select_patient == id]$id
+      path_mri_id <- paste0("mri_id_", id_selected_patient)
+
+      if (!dir.exists(file.path(path_data, path_mri_id )))
+      {
+        dir.create(file.path(path_data, path_mri_id ))
+      } else {
+        file.remove(list.files(file.path(path_data, path_mri_id ), pattern = ".png", full.names = TRUE))
+      }
+
+      #on convert le nii en png
+
+      withProgress(message = 'Conversion en png...',{
+        setProgress(value = 0.3 , message = "Conversion en png...")
+        workdir <- getwd()
+        setwd(file.path(path_root, "inst/python/"))
+        cmd_convertion <- paste0("python3 nii2png.py -i ", input_file_rv$data_path, " -o ", file.path(path_data, path_mri_id))
+        system(cmd_convertion)
+        setwd(workdir)
+        nb_png <- length(list.files(file.path(path_data, path_mri_id), pattern = ".png", full.names = TRUE))
+      })
+
+      #update rv
+      input_file_rv$nb_coupe <- nb_png
+      shinyjs::show("cut_selection")
+      input_file_rv$clear <- FALSE
+
+
+      output$contents <-  renderUI({
+        valueBox(tags$p(paste0(as.character(nb_png),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes extraites du fichier nifti", icon = icon("brain", lib = "font-awesome"), color = "olive", width = NULL)
+      })
+
     }
 
-    #on convert le nii en png
-
-    withProgress(message = 'Conversion en png...',{
-      setProgress(value = 0.3 , message = "Conversion en png...")
-      workdir <- getwd()
-      setwd(file.path(path_root, "inst/python/"))
-      cmd_convertion <- paste0("python3 nii2png.py -i ", inFile$datapath, " -o ", file.path(path_data, path_mri_id))
-      system(cmd_convertion)
-      setwd(workdir)
-      nb_png <- length(list.files(file.path(path_data, path_mri_id), pattern = ".png", full.names = TRUE))
-    })
-
-    #update rv
-    input_file_rv$data_path <- inFile$datapath
-    input_file_rv$nb_coupe <- nb_png
-    shinyjs::show("cut_selection")
-
-
-    return(valueBox(tags$p(paste0(as.character(nb_png),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes extraites du fichier nifti", icon = icon("brain", lib = "font-awesome"), color = "olive", width = NULL))
+    } else {
+      output$contents <-  renderUI({NULL})
+    }
 
   })
+
+
+  #
+  #
+  # output$contents <- renderUI({
+  #
+  #   print(paste0("rv_clear :", input_file_rv$clear))
+  #   print(paste0("rv_pathh :", input_file_rv$data_path))
+  #   print(paste0("inputfile :", input$input_img$datapath))
+  #
+  #   if (input_file_rv$clear == TRUE) {
+  #
+  #     #browser()
+  #     #inFile <- input$input_img
+  #     input_file_rv$data_path <- input$input_img$datapath
+  #
+  #
+  #     if (is.null(input_file_rv$data_path )) {
+  #       return(NULL)
+  #     }
+  #
+  #
+  #
+  #     #menage dans le dir de destination
+  #     base_patient <- base_patient()
+  #     id_selected_patient <- base_patient[input$select_patient == id]$id
+  #     path_mri_id <- paste0("mri_id_", id_selected_patient)
+  #
+  #     if (!dir.exists(file.path(path_data, path_mri_id )))
+  #     {
+  #       dir.create(file.path(path_data, path_mri_id ))
+  #     } else {
+  #       file.remove(list.files(file.path(path_data, path_mri_id ), pattern = ".png", full.names = TRUE))
+  #     }
+  #
+  #     #on convert le nii en png
+  #
+  #     withProgress(message = 'Conversion en png...',{
+  #       setProgress(value = 0.3 , message = "Conversion en png...")
+  #       workdir <- getwd()
+  #       setwd(file.path(path_root, "inst/python/"))
+  #       cmd_convertion <- paste0("python3 nii2png.py -i ", input_file_rv$data_path, " -o ", file.path(path_data, path_mri_id))
+  #       system(cmd_convertion)
+  #       setwd(workdir)
+  #       nb_png <- length(list.files(file.path(path_data, path_mri_id), pattern = ".png", full.names = TRUE))
+  #     })
+  #
+  #     #update rv
+  #     input_file_rv$nb_coupe <- nb_png
+  #     shinyjs::show("cut_selection")
+  #     input_file_rv$clear <- FALSE
+  #
+  #     return(valueBox(tags$p(paste0(as.character(nb_png),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes extraites du fichier nifti", icon = icon("brain", lib = "font-awesome"), color = "olive", width = NULL))
+  #   } else {
+  #     return(NULL)
+  #
+  #   }
+  # })
 
 
   observe({
@@ -1062,11 +1101,11 @@ server = (function(input, output, session) {
         file.remove(list.files(file.path(path_dir_pred, "to_pred"), pattern = ".png", full.names = TRUE, recursive = TRUE))
         setProgress(value = 0.3 , message = "Extraction des png..")
 
-        cut_list<- c(141, 142, 143, 144)
+        cut_list<- c(142, 144, 146, 148)
         list_png <- unlist(map(cut_list, ~list.files(file.path(path_data, path_mri_id ), pattern = paste0("z", ., ".png") , full.names = TRUE, recursive = TRUE)))
         map(list_png, ~file.copy(from = ., to = file.path(path_dir_pred, "to_pred")))
 
-        model <- load_model_hdf5(file.path(path_data, "models/2_class_irm", "vgg_2e5_more_cut_3block_run2.h5"))
+        model <- load_model_hdf5(list.files(file.path(path_data, "models/2_class_irm"), pattern = ".h5", full.names = TRUE))
 
         image_generator <- image_data_generator(rescale=1/255)
         image_test <- flow_images_from_directory(
@@ -1091,16 +1130,16 @@ server = (function(input, output, session) {
         mean_pred <- mean(pred)
 
         if (mean_pred > 0.5) {
-          #lepatient est saint
+          #lepatient est sain
           output$prev = renderUI({
-            valueBox(tags$p("Patient Saint", style = "font-size: 80%;"), paste0("Probabilité de non démence (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred, 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+            valueBox(tags$p("Patient sain", style = "font-size: 80%;"), paste0("Probabilité de non démence (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred, 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
 
             # output$prev = renderText({
-            #   paste("<p style='color:green;'><b>Saint</b> - Probabilité moyenne de : ", round(100*mean_pred, 2), "%")
+            #   paste("<p style='color:green;'><b>sain</b> - Probabilité moyenne de : ", round(100*mean_pred, 2), "%")
           })
         } else {
           output$prev = renderUI({
-            valueBox(tags$p("Patient atteint de Démence", style = "font-size: 80%;"), paste0("Probabilité de non démence (moyenne des probabilités des 4 coupes) : ", round(100*(1-mean_pred), 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+            valueBox(tags$p("Patient atteint de démence", style = "font-size: 80%;"), paste0("Probabilité de démence (moyenne des probabilités des 4 coupes) : ", round(100*(1-mean_pred), 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
           })
         }
         #browser()
@@ -1164,7 +1203,7 @@ server = (function(input, output, session) {
           tabsetPanel(
             id = "tabs",
             tabPanel(
-              "Coupe 1 (z = 138)",
+              "Coupe 1 (z = 142)",
               fluidRow(
                 br(),
                 column(6, align="center",
@@ -1176,7 +1215,7 @@ server = (function(input, output, session) {
               )
             ),
             tabPanel(
-              "Coupe 2 (z = 140)",
+              "Coupe 2 (z = 144)",
               fluidRow(
                 br(),
                 column(6, align="center",
@@ -1188,7 +1227,7 @@ server = (function(input, output, session) {
               )
             ),
             tabPanel(
-              "Coupe 3 (z = 142)",
+              "Coupe 3 (z = 146)",
               fluidRow(
                 br(),
                 column(6, align="center",
@@ -1200,7 +1239,7 @@ server = (function(input, output, session) {
               )
             ),
             tabPanel(
-              "Coupe 4 (z = 144)",
+              "Coupe 4 (z = 148)",
               fluidRow(
                 br(),
                 column(6, align="center",
@@ -1224,7 +1263,6 @@ server = (function(input, output, session) {
   })
 
   output$ggplot_var <- renderPlot({
-
 
 
     diag_data$dementia_label<-factor(diag_data$dementia, labels=c("Absence de trouble","Présence de troubles"))
@@ -1343,5 +1381,320 @@ server = (function(input, output, session) {
     return(gg)
 
   })
+
+
+
+  #prevision base patient
+
+
+  observeEvent(input$launch_prev_2_class_patient,{
+
+
+    withProgress(message = 'Lancement de la prévision...',{
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+
+      model <- dementiaproject::loadRData(list.files(path = file.path(path_data, "models", "2_class_patient"), pattern = ".Rdata", full.names = TRUE))
+      if (selected_patient$genre == "Homme") {
+        M_F <- "M"
+      } else {
+        M_F <- "F"
+      }
+      dt_2_pred <- data.table(dementia = NA,
+                              age_at_diagnosis = selected_patient$age_at_diagnosis,
+                              M.F = factor(M_F, levels = c("F", "M")),
+                              TAILLE = selected_patient$size,
+                              POIDS = selected_patient$weight,
+                              AUTONOMIE = factor(selected_patient$independ, levels = as.character(c(1, 2, 3, 4, 9))),
+                              ENTETEMENT = factor(as.numeric(selected_patient$agit), levels = as.character(c(0, 1))),
+                              DEPRESS = factor(as.numeric(selected_patient$depress), levels = as.character(c(0, 1))),
+                              ANXIETE = factor(as.numeric(selected_patient$anxiety), levels = as.character(c(0, 1))),
+                              APATHIE = factor(as.numeric(selected_patient$apathy), levels = as.character(c(0, 1))),
+                              DISINHIB = factor(as.numeric(selected_patient$disinhib), levels = as.character(c(0, 1))),
+                              IRRITAB = factor(as.numeric(selected_patient$irr), levels = as.character(c(0, 1))),
+                              ARGENT = factor(as.numeric(selected_patient$bills), levels = as.character(c(0, 1, 2, 3, 8))),
+                              FACTURES = factor(as.numeric(selected_patient$taxes), levels = as.character(c(0, 1, 2, 3, 5, 8, 9))),
+                              SHOPPING = factor(as.numeric(selected_patient$shopping), levels = as.character(c(0, 1, 2, 3, 8))),
+                              JEU = factor(as.numeric(selected_patient$games), levels = as.character(c(0, 1, 2, 3, 8))),
+                              REPAS = factor(as.numeric(selected_patient$meal), levels = as.character(c(0, 1, 2, 3, 8))),
+                              SOUV_EVENT = factor(as.numeric(selected_patient$event), levels = as.character(c(0, 1, 2, 3, 8))),
+                              CONCENTRATION = factor(as.numeric(selected_patient$concentration), levels = as.character(c(0, 1, 2, 3, 8))),
+                              SOUV_DATES = factor(as.numeric(selected_patient$remdates), levels = as.character(c(0, 1, 2, 3, 8))),
+                              DEPLACEMENT = factor(as.numeric(selected_patient$travel), levels = as.character(c(0, 1, 2, 3, 8))))
+
+      pred <- predict(model,newdata=dt_2_pred)
+      pred_prob <- predict(model,newdata=dt_2_pred, type = 'prob')
+
+      if (pred == 0) {
+        #le patient est sain
+        output$prev_patient = renderUI({
+          valueBox(tags$p("Patient sain (Absence de trouble - CDR = 0.0)", style = "font-size: 80%;"), paste0("Probabilité de non démence : ", round(100*pred_prob[,1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+        })
+      } else {
+        output$prev_patient = renderUI({
+          valueBox(tags$p("Patient atteint de démence", style = "font-size: 80%;"), paste0("Probabilité de démence : ", round(100*pred_prob[,2], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+        })
+      }
+    })
+  })
+
+
+
+
+  observeEvent(input$launch_prev_3_class_patient,{
+
+
+    withProgress(message = 'Lancement de la prévision...',{
+      base_patient <- base_patient()
+      selected_patient <- base_patient[input$select_patient == id]
+      model <- dementiaproject::loadRData(list.files(path = file.path(path_data, "models", "3_class_patient"), pattern = ".Rdata", full.names = TRUE))
+
+      if (selected_patient$genre == "Homme") {
+        M_F <- "M"
+      } else {
+        M_F <- "F"
+      }
+      dt_2_pred <- data.table(dementia = NA,
+                              age_at_diagnosis = selected_patient$age_at_diagnosis,
+                              M.F = factor(M_F, levels = c("F", "M")),
+                              TAILLE = selected_patient$size,
+                              POIDS = selected_patient$weight,
+                              AUTONOMIE = factor(selected_patient$independ, levels = as.character(c(1, 2, 3, 4, 9))),
+                              ENTETEMENT = factor(as.numeric(selected_patient$agit), levels = as.character(c(0, 1))),
+                              DEPRESS = factor(as.numeric(selected_patient$depress), levels = as.character(c(0, 1))),
+                              ANXIETE = factor(as.numeric(selected_patient$anxiety), levels = as.character(c(0, 1))),
+                              APATHIE = factor(as.numeric(selected_patient$apathy), levels = as.character(c(0, 1))),
+                              DISINHIB = factor(as.numeric(selected_patient$disinhib), levels = as.character(c(0, 1))),
+                              IRRITAB = factor(as.numeric(selected_patient$irr), levels = as.character(c(0, 1))),
+                              ARGENT = factor(as.numeric(selected_patient$bills), levels = as.character(c(0, 1, 2, 3, 8))),
+                              FACTURES = factor(as.numeric(selected_patient$taxes), levels = as.character(c(0, 1, 2, 3, 5, 8, 9))),
+                              SHOPPING = factor(as.numeric(selected_patient$shopping), levels = as.character(c(0, 1, 2, 3, 8))),
+                              JEU = factor(as.numeric(selected_patient$games), levels = as.character(c(0, 1, 2, 3, 8))),
+                              REPAS = factor(as.numeric(selected_patient$meal), levels = as.character(c(0, 1, 2, 3, 8))),
+                              SOUV_EVENT = factor(as.numeric(selected_patient$event), levels = as.character(c(0, 1, 2, 3, 8))),
+                              CONCENTRATION = factor(as.numeric(selected_patient$concentration), levels = as.character(c(0, 1, 2, 3, 8))),
+                              SOUV_DATES = factor(as.numeric(selected_patient$remdates), levels = as.character(c(0, 1, 2, 3, 8))),
+                              DEPLACEMENT = factor(as.numeric(selected_patient$travel), levels = as.character(c(0, 1, 2, 3, 8))))
+
+      pred <- predict(model,newdata=dt_2_pred)
+      pred_prob <- predict(model,newdata=dt_2_pred, type = 'prob')
+
+      if (pred == 0) {
+        #le patient est sain
+        output$prev_patient = renderUI({
+          valueBox(tags$p("Patient sain (Absence de trouble - CDR = 0.0)", style = "font-size: 60%;"), paste0("Probabilité : ", round(100*pred_prob[,1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+        })
+      }
+
+      if (pred == 1) {
+        output$prev_patient = renderUI({
+          valueBox(tags$p("Patient possiblement atteint (Troubles incertains - CDR = 0.5)", style = "font-size: 60%;"), paste0("Probabilité : ", round(100*pred_prob[,2], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+        })
+      }
+      if (pred == 2) {
+
+        output$prev_patient = renderUI({
+          valueBox(tags$p("Patient atteint (Troubles bénins, modérés ou sévères - CDR >= 1.0)", style = "font-size: 60%;"), paste0("Probabilité : ", round(100*pred_prob[,3], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+        })
+      }
+    })
+  })
+
+
+
+  observeEvent(input$launch_prev_3_class_irm,{
+
+
+    withProgress(message = 'Lancement de la prévision...',{
+      base_patient <- base_patient()
+      id_selected_patient <- base_patient[input$select_patient == id]$id
+      path_mri_id <- paste0("mri_id_", id_selected_patient)
+
+      if (!dir.exists(file.path(path_data, path_mri_id )))
+      {
+        print("attention il n'y a pas d'irm à prévoir pour ce patient")
+        output$prev = renderUI({
+          valueBox(tags$p("Attention", style = "font-size: 80%;"), subtitle = "Aucune IRM chargée pour ce patient", icon = icon("exclamation", lib = "font-awesome"), color = "yellow", width = 12)
+        })
+
+      } else {
+        #on lance la prev avec le bon modele
+        #on déplace les coupes
+        path_dir_pred <- file.path(path_data, "png_tmp")
+        file.remove(list.files(file.path(path_dir_pred, "to_pred"), pattern = ".png", full.names = TRUE, recursive = TRUE))
+        setProgress(value = 0.3 , message = "Extraction des png..")
+        if (file.exists(file.path(path_data,'/models/3_class_irm/prev.csv'))) {
+          file.remove(file.path(path_data, '/models/3_class_irm/prev.csv'))
+        }
+
+        cut_list<- c(152, 153, 154, 155)
+        list_png <- unlist(map(cut_list, ~list.files(file.path(path_data, path_mri_id ), pattern = paste0("z", ., ".png") , full.names = TRUE, recursive = TRUE)))
+        map(list_png, ~file.copy(from = ., to = file.path(path_dir_pred, "to_pred")))
+
+        ### launch prev python ###
+        reticulate::source_python(file.path(path_root, "inst/python/launch_3_class_pred.py"), envir = parent.frame(), convert = TRUE)
+        pred <- read.csv2(file.path(path_data, "models/3_class_irm/prev.csv"), header = FALSE, sep = "," , dec = ".")
+        pred <- as.matrix(pred)
+
+        mean_pred <- c(mean(pred[,1]), mean(pred[,2]), mean(pred[,3]))
+        n_max <- which.max(mean_pred)
+
+        if (n_max == 1) {
+          output$prev = renderUI({
+            valueBox(tags$p("Patient sain (Absence de trouble - CDR = 0.0)", style = "font-size: 60%;"), paste0("Probabilité (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred[n_max], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+          })
+        }
+
+        if (n_max == 2) {
+          output$prev = renderUI({
+            valueBox(tags$p("Patient possiblement atteint (Troubles incertains - CDR = 0.5)", style = "font-size: 60%;"), paste0("Probabilité (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred[n_max], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+          })
+        }
+
+        if (n_max == 3) {
+          output$prev = renderUI({
+            valueBox(tags$p("Patient atteint de démence (Troubles bénins, modérés ou sévères - CDR >= 1.0)", style = "font-size: 60%;"), paste0("Probabilité (moyenne des probabilités des 4 coupes) : ", round(100*mean_pred[n_max], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+          })
+        }
+
+        #coupe 1
+        output$tab1_img <- renderImage({
+          list(src = list_png[1], width = "200")
+        }, deleteFile = FALSE)
+
+        output$val_tab1 <- renderUI({
+          max_1 <-  which.max(pred[1,])
+          if (max_1 == 1) {
+            vb <- valueBox(tags$p("Sain", style = "font-size: 60%;"), paste0("Probabilité (Absence de trouble) : ", round(100*pred[1,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+          }
+          if (max_1 == 2) {
+            vb <-valueBox(tags$p("Possiblement atteint", style = "font-size: 60%;"), paste0("Probabilité (Troubles incertains) : ", round(100*pred[1,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+          }
+          if (max_1 == 3) {
+            vb <-valueBox(tags$p("Atteint de démence", style = "font-size: 60%;"), paste0("Probabilité (Troubles bénins, modérés ou sévères) : ", round(100*pred[1,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+          }
+          return(vb)
+        })
+
+        output$val_tab2 <- renderUI({
+          max_1 <-  which.max(pred[2,])
+          if (max_1 == 1) {
+            vb <- valueBox(tags$p("Sain", style = "font-size: 60%;"), paste0("Probabilité (Absence de trouble) : ", round(100*pred[2,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+          }
+          if (max_1 == 2) {
+            vb <- valueBox(tags$p("Possiblement atteint", style = "font-size: 60%;"), paste0("Probabilité (Troubles incertains) : ", round(100*pred[2,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+          }
+          if (max_1 == 3) {
+            vb <- valueBox(tags$p("Atteint de démence", style = "font-size: 60%;"), paste0("Probabilité (Troubles bénins, modérés ou sévères) : ", round(100*pred[2,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+          }
+          return(vb)
+        })
+
+        output$val_tab3 <- renderUI({
+          max_1 <-  which.max(pred[3,])
+          if (max_1 == 1) {
+            vb <- valueBox(tags$p("Sain", style = "font-size: 60%;"), paste0("Probabilité (Absence de trouble) : ", round(100*pred[3,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+          }
+          if (max_1 == 2) {
+            vb <- valueBox(tags$p("Possiblement atteint", style = "font-size: 60%;"), paste0("Probabilité (Troubles incertains) : ", round(100*pred[3,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+          }
+          if (max_1 == 3) {
+            vb <- valueBox(tags$p("Atteint de démence", style = "font-size: 60%;"), paste0("Probabilité (Troubles bénins, modérés ou sévères) : ", round(100*pred[3,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+          }
+          return(vb)
+        })
+
+        output$val_tab4 <- renderUI({
+          max_1 <-  which.max(pred[4,])
+          if (max_1 == 1) {
+            vb <- valueBox(tags$p("Sain", style = "font-size: 60%;"), paste0("Probabilité (Absence de trouble) : ", round(100*pred[4,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "olive", width = 12)
+          }
+          if (max_1 == 2) {
+            vb <- valueBox(tags$p("Possiblement atteint", style = "font-size: 60%;"), paste0("Probabilité (Troubles incertains) : ", round(100*pred[4,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "yellow", width = 12)
+          }
+          if (max_1 == 3) {
+            vb <- valueBox(tags$p("Atteint de démence", style = "font-size: 60%;"), paste0("Probabilité (Troubles bénins, modérés ou sévères) : ", round(100*pred[4,][max_1], 2),  " %"), icon = icon("stethoscope", lib = "font-awesome"), color = "red", width = 12)
+          }
+          return(vb)
+        })
+
+
+        #coupe 2
+        output$tab2_img <- renderImage({
+          list(src = list_png[2], width = "200")
+        }, deleteFile = FALSE)
+
+
+        #coupe 3
+        output$tab3_img <- renderImage({
+          list(src = list_png[3], width = "200")
+        }, deleteFile = FALSE)
+
+        #coupe 4
+        output$tab4_img <- renderImage({
+          list(src = list_png[4], width = "200")
+        }, deleteFile = FALSE)
+
+        output$pred_tabs <- renderUI(
+          tabsetPanel(
+            id = "tabs",
+            tabPanel(
+              "Coupe 1 (z = 138)",
+              fluidRow(
+                br(),
+                column(6, align="center",
+                       imageOutput("tab1_img")
+                ),
+                column(6,
+                       uiOutput("val_tab1")
+                )
+              )
+            ),
+            tabPanel(
+              "Coupe 2 (z = 140)",
+              fluidRow(
+                br(),
+                column(6, align="center",
+                       imageOutput("tab2_img")
+                ),
+                column(6,
+                       uiOutput("val_tab2")
+                )
+              )
+            ),
+            tabPanel(
+              "Coupe 3 (z = 142)",
+              fluidRow(
+                br(),
+                column(6, align="center",
+                       imageOutput("tab3_img")
+                ),
+                column(6,
+                       uiOutput("val_tab3")
+                )
+              )
+            ),
+            tabPanel(
+              "Coupe 4 (z = 144)",
+              fluidRow(
+                br(),
+                column(6, align="center",
+                       imageOutput("tab4_img")
+                ),
+                column(6,
+                       uiOutput("val_tab4")
+                )
+              )
+            )
+          )
+        )
+        shinyjs::show("prev_coupe")
+      }
+    })
+
+
+  })
+
+
 
 })

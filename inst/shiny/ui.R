@@ -1,4 +1,3 @@
-library(Rshinytemplate)
 
 ui2 <- function(){
   tagList(
@@ -75,6 +74,8 @@ ui2 <- function(){
                          title = "Chargement du fichier IRM",
                          fluidRow(
                          column(width = 8,
+                                #uiOutput("file_in")),
+
                                 fileInput("input_img", "Choisir un fichier .img (format nifti)",
                                           accept = c(
                                             "text/csv",
@@ -123,18 +124,17 @@ ui2 <- function(){
           ),
 
           hidden(
-
-            fluidRow(
-              box(width = 12, status = 'primary', solidHeader = TRUE,
-                  title = "Lancement de la prévision de démence",
-                  fluidRow(column(width = 12,
-                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class", "Lancement"))),
-                           br(),
-                           br(),
-                           br())
-              )
-            )
+            fluidRow(id = "ihm_prev_patient",
+                     box(width = 12, status = 'primary', solidHeader = TRUE,
+                         title = "Lancement de la prévision de démence",
+                         fluidRow(
+                           column(width = 12,
+                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_patient", "2 Classes", width = "160px")), " ",
+                                  div(style="display: inline-block; vertical-align:top; width: 150px; margin-left:30px", actionButton("launch_prev_3_class_patient", "3 Classes", width = "160px")) )),
+                         fluidRow(br(), uiOutput("prev_patient"))
+                     ))
           )
+
         ),
 
 
@@ -155,7 +155,9 @@ ui2 <- function(){
                          title = "Lancement de la prévision de démence",
                          fluidRow(
                            column(width = 12,
-                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_irm", "Lancement")))),
+                                  div(style="display: inline-block; vertical-align:top; width: 150px;", actionButton("launch_prev_2_class_irm", "2 Classes", width = "160px")), " ",
+                                  div(style="display: inline-block; vertical-align:top; width: 150px; margin-left:30px", actionButton("launch_prev_3_class_irm", "3 Classes", width = "160px")) )),
+
                          fluidRow(br(), uiOutput("prev"))
                      ))
           ),
@@ -206,7 +208,7 @@ ui <- shinydashboard::dashboardPage(
                                                                shinydashboard::menuItem("Gestion des patients",tabName = "patient"),
                                                                shinydashboard::menuItem("Informations base patients",tabName = "info"),
                                                                shinydashboard::menuItem("Chargement des IRM",tabName = "irm"),
-                                                               shinydashboard::menuItem("Aide à la décision (Données Patient)",tabName = "prev_base"),
+                                                               shinydashboard::menuItem("Aide à la décision (Patient)",tabName = "prev_base"),
                                                                shinydashboard::menuItem("Aide à la décision (IRM)",tabName = "prev_irm"),
                                                                shinydashboard::menuItem("Administration",tabName = "Admin"))#,
 
