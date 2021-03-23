@@ -143,13 +143,13 @@ fs_data <- fs_data[,which(unlist(lapply(fs_data, function(x)!all(is.na(x))))),wi
 # CorticalWhiteMatterVol
 # SupraTentorialVol
 
-# mri_adrc_join <- merge(mri_data, adrc_data, by.x = "mri_following_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID")
+mri_adrc_join <- merge(mri_data, adrc_data, by.x = "mri_following_adrc_session", by.y = "ADRC_ADRCCLINICALDATA.ID")
 # mri_adrc_join <- merge(mri_adrc_join, fs_data, by = "Session")
 #
-# melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(cdr, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("cdr"))
-# ggplot(melt_mri_adrc_join, aes(fill = cdr, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
-#   scale_fill_discrete(name = "CDR") + labs(x = "Clinical Dementia Rating [0 à 3]", y = "Volume") + theme(axis.text.x = element_blank())
-#
+melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(cdr_ref, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("cdr"))
+ggplot(melt_mri_adrc_join, aes(fill = cdr, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
+  scale_fill_discrete(name = "CDR") + labs(x = "Clinical Dementia Rating [0 à 3]", y = "Volume") + theme(axis.text.x = element_blank())
+
 #
 # melt_mri_adrc_join <- melt(unique(mri_adrc_join[, .(dementia, IntraCranialVol, CortexVol, SubCortGrayVol,TotalGrayVol, CorticalWhiteMatterVol, SupraTentorialVol)]), id.vars = c("dementia"))
 # ggplot(melt_mri_adrc_join, aes(fill = dementia, y= value)) + geom_boxplot() + facet_wrap(~variable, scales = "free") + ggtitle("Box plot des données 'Free Surfer' de la session IRM suite au diagnostic") +
@@ -159,4 +159,13 @@ fs_data <- fs_data[,which(unlist(lapply(fs_data, function(x)!all(is.na(x))))),wi
 # setnames(mri_adrc_join, c("nb_days_since_entry.x",  "nb_days_since_entry.y"), c("nb_days_entry_mri",  "nb_days_entry_next_adrc"))
 # mri_adrc_join[, nb_days_mri_adrc := nb_days_entry_next_adrc - nb_days_entry_mri]
 
+mri_adrc_join <- dementiaproject::loadRData(file =  file.path(path_root, "inst/extdata/oasis3/mri_adrc_join.Rdata"))
+setDT(mri_adrc_join)
+mri_adrc_join[adcr_ref == "previous", min_duree := abs(nb_days_btw_mri_prev_adrc)]
+mri_adrc_join[adcr_ref == "following", min_duree := abs(nb_days_btw_mri_fol_adrc)]
+
+ggplot(mri_adrc_join, aes(x = cdr_ref, y = min_duree, fill = factor(cdr_ref) )) + geom_boxplot() +  scale_fill_discrete(name = "CDR") + labs(x = "Clinical Dementia Rating [0 à 3]", y = "Durée entre le scanner et la visite clinique [jours]")
+mean(mri_adrc_join$min_duree)
+ggplot(mri_adrc_join, aes(x = adcr_ref, fill = factor(1) ))+ geom_bar(stat="count", position=position_dodge()) +
+  geom_label(stat='count', aes(label = round(..count.., 1)), position=position_dodge(.9), show.legend = FALSE, size = 5) +  scale_x_discrete(labels = c("Suivant l'IRM", "Précédent l'IRM")) + labs(x = "Visite clinique de référence", y = "Nombre de sessions d'IRM")
 

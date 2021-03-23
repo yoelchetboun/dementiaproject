@@ -21,11 +21,11 @@ FLAGS <- flags(
   flag_string("cut_list", "135_140_145_150"),
   flag_integer("width_target", 224),
   flag_integer("height_target", 224),
-  flag_string("loss_function", "binary_crossentropy"),
+  flag_string("loss_function", "binary_crossentropy"), #binary_crossentropy
   flag_string("optimizer_var", "adam"),
   flag_numeric("learning_rate", 0.001),
   flag_string("metrics_var", "accuracy"),
-  flag_integer("nb_epoch", 1),
+  flag_integer("nb_epoch", 20),
   flag_integer("batch_size_var", 40),
   flag_numeric("val_split", 0.2),
   flag_numeric("test_split", 0.1)
@@ -164,6 +164,7 @@ if (FLAGS$loss_function == "binary_crossentropy") {
 rm(trainData)
 
 #afin de gagner en mémoire on redémare la session R
+
 gc(reset=TRUE, full = TRUE)
 
 # Ne marche pas en batch
@@ -179,6 +180,14 @@ gc(reset=TRUE, full = TRUE)
 # image(t(apply(testbrain, 2, rev)), col = gray.colors(12),
 #       axes = F)
 
+if (FLAGS$loss_function == "binary_crossentropy") {
+  last_unit = 1
+  last_activ = "sigmoid"
+} else {
+  last_unit = 2
+  last_activ = "softmax"
+}
+
 
 model <- keras_model_sequential() %>%
   layer_conv_2d(filters = 32, kernel_size = c(3,3), activation = "relu",
@@ -192,12 +201,12 @@ model <- keras_model_sequential() %>%
   layer_max_pooling_2d(pool_size = c(2,2)) %>%
   layer_flatten() %>%
   layer_dense(units = 128, activation = "relu") %>%
-  layer_dense(units = 2, activation = "softmax") #car 2 catégories
+  layer_dense(units = last_unit, activation = last_activ) #car 2 catégories #softmax
 
 summary(model)
 
 #fonction d'arret si on n'améliore plus la loss au bout de 20 epoch
-early_stop <- callback_early_stopping(monitor = "val_loss", patience = 25)
+early_stop <- callback_early_stopping(monitor = "val_loss", patience = 20)
 
 model %>% compile(
   optimizer = opt,

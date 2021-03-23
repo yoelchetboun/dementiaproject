@@ -6,6 +6,7 @@ library(keras)
 library(EBImage)
 library(stringr)
 library(pbapply)
+library(OpenImageR)
 
 #select 4 png pour chaque MRI sessions / anat
 path_root <- "~/GENERIC/dementiaproject/"
@@ -99,6 +100,51 @@ dataset[cdr_ref == "0.0", dementia := FALSE]
 
 #save(dataset, file =  file.path(path_root, "inst/extdata/oasis3/dataset.Rdata"))
 
+#test data augmentation
+
+path_root <- "~/GENERIC/dementiaproject/"
+path_data <- "/srv/OASIS_DATA/"
+ls_png <- list.files(path = file.path(path_data, "data_processed"), pattern = ".png", full.names = TRUE)
+img_test <- ls_png[3]
+img_test <- EBImage::readImage(img_test)
+dim(img_test)
+EBImage::display(img_test)
+
+out <- Augmentation(imageData(img_test), rotate_angle = 10, verbose = TRUE, rotate_method = "bilinear") #pas terrrible
+out <- rotateFixed(imageData(img_test), angle = 90)
+out <- Augmentation(imageData(img_test), shift_rows = 10, verbose = TRUE) #shift vers la gauche ok
+out <- Augmentation(imageData(img_test), shift_rows = -10, verbose = TRUE) #shift vers la droite ok
+out <- Augmentation(imageData(img_test), resiz_width = 250, verbose = TRUE) #resize en largeur ok
+out <- Augmentation(imageData(img_test), resiz_height = 300, verbose = TRUE) #resize en hauteur ok pour zoomer puis apres cropper
+out <- Augmentation(imageData(out), crop_height = seq(1:200), verbose = TRUE) #crop en hauteur (on coupe le bas)
+out <- Augmentation(imageData(out), crop_width = seq(1:150), verbose = TRUE) #crop en largeur (on coupe à gauche)
+out <- down_sample_image(image = imageData(img_test), factor = 1.1,gaussian_blur =  T) # dezoom  de 10% > on doit faire un resize apres...
+out <- extend_image(out, width_max = 176, height_max = 256)
+
+out <- imageData(img_test) + 0.2 #ajoute de la luminosité
+out <- imageData(img_test) * 1.2 #ajoute du contraste
+out <- imageData(img_test) ^ 1.2 #ajoute du contraste
+
+
+EBImage::display(out)
+
+#Whitening (or sphering) is the preprocessing needed for some algorithms.
+# If we are training on images, the raw input is redundant, since adjacent pixel values are highly correlated.
+# The purpose of whitening is to reduce the correlation between features and to return features with the same variance,
+
+
+#recut_selection
+
+path_data <- "/srv/OASIS_DATA/"
+path_root <- "~/GENERIC/dementiaproject/"
+
+path_raw <- file.path(path_data, "data_raw_t1")
+path_selected <- file.path(path_data, "data_selected_more_cut")
+path_processed <- file.path(path_data, "data_processed_more_cut")
+dataset <- dementiaproject::cut_selection(path_raw, path_selected, path_processed, cut_list = c(136, 137, 138, 139, 140, 141, 142,143, 144, 145))
+
+
+
 # lancer un script en arrière plan sous linux :
 .rs.restartR()
 rm(list=ls(all.names = TRUE))
@@ -108,7 +154,7 @@ myscript  = "/home/chetbo/GENERIC/dementiaproject/inst/launch_cnn.R"
 file.remove("/home/chetbo/GENERIC/dementiaproject/inst/launch_cnn.log")
 cmd <- cron_rscript(myscript)
 cron_rm(id = "cnn_launch")
-cron_add(cmd, frequency = '45 13 18 02 *', id = 'cnn_launch', description = 'cnn_launch')
+cron_add(cmd, frequency = '16 18 05 03 *', id = 'cnn_launch', description = 'cnn_launch')
 
 
 

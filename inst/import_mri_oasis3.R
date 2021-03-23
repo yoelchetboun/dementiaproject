@@ -2,7 +2,7 @@ library(data.table)
 library(purrr)
 
 path_root <- "~/GENERIC/dementiaproject/"
-path_data <- "/srv/OASIS_DATA/oasis3/"
+path_data <- "/srv/OASIS_DATA/"
 
 # MRI data
 mri_data <- read.csv2(file.path(path_root, "inst/extdata/oasis3/mr_sessions_data_full.csv"), header = TRUE, sep = ",")
@@ -19,21 +19,27 @@ str(mri_data)
 #                        You can also enter multiple scan types separated by a comma with no whitespace (e.g. T2w,swi,bold).
 #                        Without this argument, all scans for the given experiment_id will be downloaded.
 
+# OAS30158_MR_d2467 cdr = 2
+# OAS30031_MR_d0427 cdr = 1
+# OAS30016_MR_d0021 cdr = 0.5
+# OAS30001_MR_d0129 cdr = 0
+
 mri_subject1 <- mri_data[Subject  == "OAS30001", .(MR.ID)]
+mri_subjects <- mri_data[MR.ID %in% c("OAS30007_MR_d2722","OAS31163_MR_d0036", "OAS30158_MR_d2467", "OAS30271_MR_d0004" ), .(MR.ID)]
 mri_subjects <- mri_data[, .(MR.ID)]
 
 write.table(mri_subjects, file = file.path(path_root, "inst/extdata/oasis3/mri_subjects.csv"), quote = FALSE, row.names = FALSE, col.names = FALSE)
 input_file <- file.path(path_root, "inst/extdata/oasis3/mri_subjects.csv")
 xnat_central_username <- "chetboun"
 scan_type <- "T1w"
-cmd <- paste(file.path(path_root, "inst/xnat_scripts/oasis-scripts-master/download_scans/download_oasis_scans.sh"), input_file, path_data, xnat_central_username, scan_type)
+cmd <- paste(file.path(path_root, "inst/shell/download_oasis_scans.sh"), input_file, path_data, xnat_central_username, scan_type)
 
 #cmd à lancer directement dans le terminal car demande de mdp obligatoire + le script ne marche pas si on est pas dans le dossier ou il se lance
 
 
 # Conversion des .nii en png #oasis 3
 
-path_nii_converter <- file.path(path_root, "/inst/nii2png.py")
+path_nii_converter <- file.path(path_root, "/inst/python/nii2png.py")
 # fonctionne python3 nii2png.py -i /srv/OASIS_DATA/oasis3/OAS30001_MR_d0129/anat3/sub-OAS30001_ses-d0129_run-01_T1w.nii.gz -o ~/CEPE/dementiaproject/oasis3/
 list_file_niigz <- list.files(path = path_data, pattern = ".nii.gz", full.names = TRUE, recursive = TRUE)
 purrr::map(seq(1, length(list_file_niigz), 1), function(x) {
