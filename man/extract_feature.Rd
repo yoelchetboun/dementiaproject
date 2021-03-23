@@ -4,7 +4,15 @@
 \alias{extract_feature}
 \title{Extrait les features d'une repertoire contenant des images}
 \usage{
-extract_feature(path_dir, data_ref, width = 256, height = 256, labelsExist = T)
+extract_feature(
+  path_dir,
+  data_ref,
+  width = 256,
+  height = 256,
+  labelsExist = T,
+  nb_class = 2,
+  colormode = "greyscale"
+)
 }
 \arguments{
 \item{path_dir}{Repertoire contenant les images}
@@ -16,6 +24,10 @@ extract_feature(path_dir, data_ref, width = 256, height = 256, labelsExist = T)
 \item{height}{Hauteur de l'image cible}
 
 \item{labelsExist}{Booléen si le label existe ou non}
+
+\item{nb_class}{Nombre de classe}
+
+\item{colormode}{Greyscale ou RGB (change le nombre de channel)}
 }
 \value{
 Retourne une liste (X = feature_matrix, y = y)) si lalelsExist = T ou uniquement feature_matrix si lalelsExist = F

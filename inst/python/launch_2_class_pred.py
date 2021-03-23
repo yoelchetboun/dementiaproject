@@ -12,7 +12,8 @@ from keras.models import load_model
 from PIL import Image
 from sklearn.metrics import classification_report, confusion_matrix
 from numpy import asarray
-from numpy import argmax
+from numpy import savetxt
+from numpy import math
 
 img_width, img_height = 160, 224
 nb_test_samples = 4  
@@ -21,20 +22,20 @@ batch_size = 1
 
 test_datagen = ImageDataGenerator(rescale=1. / 255)
 test_generator = test_datagen.flow_from_directory(
-    test_data_dir,
-    target_size=(img_height, img_width),
-    batch_size=batch_size,
-    shuffle = False,
-    class_mode='categorical')
+  test_data_dir,
+  target_size=(img_height, img_width),
+  batch_size=batch_size,
+  shuffle = False,
+  class_mode='binary')
 
-model = load_model("/srv/OASIS_DATA/data_base_shiny//models/3_class_irm/vgg_3block_3_class_run3.h5")
+model = load_model("/srv/OASIS_DATA/data_base_shiny//models/2_class_irm/vgg_2e5_more_cut_3block_run2.h5")
 
 #test_steps_per_epoch = numpy.math.ceil(test_generator.samples / test_generator.batch_size)
 
-predictions = model.predict_generator(
-    generator=test_generator,
+predictions = model.predict(
+    test_generator,
     steps = 4,
-    verbose = 1)
+    verbose =1)
 
-predicted_classes = np.argmax(predictions, axis=1)
-savetxt('/srv/OASIS_DATA/data_base_shiny//models/3_class_irm/prev.csv', predictions, delimiter=',')
+predicted_classes = (predictions > 0.5).astype("int32")
+savetxt('/srv/OASIS_DATA/data_base_shiny//models/2_class_irm/prev.csv', predictions, delimiter=',')

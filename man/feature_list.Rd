@@ -4,7 +4,7 @@
 \alias{feature_list}
 \title{Extrait les features d'une image unique}
 \usage{
-feature_list(path_img, width = 254, height = 254)
+feature_list(path_img, width = 254, height = 254, colormode = "greyscale")
 }
 \arguments{
 \item{path_img}{Chemin absolu de l'image}
@@ -12,6 +12,8 @@ feature_list(path_img, width = 254, height = 254)
 \item{width}{Largeur cible}
 
 \item{height}{Hauteur cible}
+
+\item{colormode}{Greyscale ou RGB (change le nombre de channel)}
 }
 \value{
 retourne un vecteur

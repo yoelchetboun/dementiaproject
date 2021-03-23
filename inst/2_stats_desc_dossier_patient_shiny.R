@@ -45,9 +45,9 @@
 # Import de la table freesurfer_finale, préparée dans le programme 1
 ##################################################################################################################
 
-path_root <-"C:/Users/Klara/Documents/Datascientist/dementiaproject"
-load(file=file.path(path_root, "//inst/extdata/oasis3/bases_R/diag_data_finale.Rdata"))
-load(file=file.path(path_root, "//inst/extdata/oasis3/bases_R/subjects_data.Rdata"))
+path_root <- "~/GENERIC/dementiaproject/"
+load(file=file.path(path_root, "//inst/extdata/diag_data_finale.Rdata"))
+load(file=file.path(path_root, "//inst/extdata/subjects_data.Rdata"))
 
 ####################################################################################
 # Table restreinte aux variables identifiées dans l'étape de modélisation

@@ -10,6 +10,8 @@ usethis::use_package('OpenImageR')
 
 usethis::use_build_ignore("dev_history.R")
 usethis::use_build_ignore("Rprofile.site")
+usethis::use_build_ignore("user_base.rds")
+
 
 install.packages("/CM/DEV/ARCHIVE_LIVRABLES/RTE_DRONES/Rshinytemplate_1.0.2.tar.gz", type = "source", repo = NULL)
 

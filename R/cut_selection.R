@@ -58,6 +58,7 @@ cut_selection <- function(path_raw, path_selected, path_processed, cut_list = c(
     dim(EBImage::readImage(file.path(path_selected, x)))[2]
   }))
 
+
   #resize each picture in 256x256
   width_max <- 256
   height_max <- 256
@@ -65,6 +66,26 @@ cut_selection <- function(path_raw, path_selected, path_processed, cut_list = c(
   #à mettre dans une nouvelle fonction
   file.remove(list.files(path_processed, pattern = ".png", full.names = TRUE))
   file.remove(list.files(path_processed, pattern = ".Rdata", full.names = TRUE))
+
+  #juste on crop à la taille min
+
+  #
+  # width_max <- min(dataset$width)
+  # height_max <- min(dataset$height)
+  #
+  # #à mettre dans une fonction
+  # map(seq(1,length(dataset$new_name), 1), function(x) {
+  #
+  #   #print(paste0(x, "/", length(dataset$new_name)))
+  #   file_name <- dataset$new_name[x]
+  #
+  #   img <- readImage(file.path(path_selected, file_name))
+  #
+  #   out <- resize(img, w= width_max, h = height_max)
+  #   writeImage(out, file.path(path_processed, file_name))
+  # })
+  #
+
 
   #à mettre dans une fonction
   map(seq(1,length(dataset$new_name), 1), function(x) {

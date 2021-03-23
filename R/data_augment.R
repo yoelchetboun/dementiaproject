@@ -14,7 +14,7 @@
 #' @import EBImage
 #' @import OpenImageR
 #'
-#' @return
+#' @return data table
 #' @export
 #'
 #'

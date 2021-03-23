@@ -666,15 +666,6 @@ server = (function(input, output, session) {
       }
       input_file_rv$nb_coupe <- nb_cut
 
-
-      # output$file_in <- renderUI({fileInput("input_img", "Choisir un fichier .img (format nifti)",
-      #                                       accept = c(
-      #                                         "text/csv",
-      #                                         "text/comma-separated-values,text/plain",
-      #                                         ".csv",
-      #                                         ".img"), width = NULL,
-      # )})
-
       reset('input_img')
       input_file_rv$clear <- TRUE
       input_file_rv$data_path <- NULL
@@ -981,64 +972,6 @@ server = (function(input, output, session) {
   })
 
 
-  #
-  #
-  # output$contents <- renderUI({
-  #
-  #   print(paste0("rv_clear :", input_file_rv$clear))
-  #   print(paste0("rv_pathh :", input_file_rv$data_path))
-  #   print(paste0("inputfile :", input$input_img$datapath))
-  #
-  #   if (input_file_rv$clear == TRUE) {
-  #
-  #     #browser()
-  #     #inFile <- input$input_img
-  #     input_file_rv$data_path <- input$input_img$datapath
-  #
-  #
-  #     if (is.null(input_file_rv$data_path )) {
-  #       return(NULL)
-  #     }
-  #
-  #
-  #
-  #     #menage dans le dir de destination
-  #     base_patient <- base_patient()
-  #     id_selected_patient <- base_patient[input$select_patient == id]$id
-  #     path_mri_id <- paste0("mri_id_", id_selected_patient)
-  #
-  #     if (!dir.exists(file.path(path_data, path_mri_id )))
-  #     {
-  #       dir.create(file.path(path_data, path_mri_id ))
-  #     } else {
-  #       file.remove(list.files(file.path(path_data, path_mri_id ), pattern = ".png", full.names = TRUE))
-  #     }
-  #
-  #     #on convert le nii en png
-  #
-  #     withProgress(message = 'Conversion en png...',{
-  #       setProgress(value = 0.3 , message = "Conversion en png...")
-  #       workdir <- getwd()
-  #       setwd(file.path(path_root, "inst/python/"))
-  #       cmd_convertion <- paste0("python3 nii2png.py -i ", input_file_rv$data_path, " -o ", file.path(path_data, path_mri_id))
-  #       system(cmd_convertion)
-  #       setwd(workdir)
-  #       nb_png <- length(list.files(file.path(path_data, path_mri_id), pattern = ".png", full.names = TRUE))
-  #     })
-  #
-  #     #update rv
-  #     input_file_rv$nb_coupe <- nb_png
-  #     shinyjs::show("cut_selection")
-  #     input_file_rv$clear <- FALSE
-  #
-  #     return(valueBox(tags$p(paste0(as.character(nb_png),  " coupes"), style = "font-size: 80%;"), "Nombre de coupes extraites du fichier nifti", icon = icon("brain", lib = "font-awesome"), color = "olive", width = NULL))
-  #   } else {
-  #     return(NULL)
-  #
-  #   }
-  # })
-
-
   observe({
 
     if (input_file_rv$nb_coupe == 0)
@@ -1097,36 +1030,21 @@ server = (function(input, output, session) {
       } else {
         #on lance la prev avec le bon modele
         #on déplace les coupes
+
         path_dir_pred <- file.path(path_data, "png_tmp")
         file.remove(list.files(file.path(path_dir_pred, "to_pred"), pattern = ".png", full.names = TRUE, recursive = TRUE))
         setProgress(value = 0.3 , message = "Extraction des png..")
 
-        cut_list<- c(142, 144, 146, 148)
+        cut_list<- c(144, 145, 146, 147)
         list_png <- unlist(map(cut_list, ~list.files(file.path(path_data, path_mri_id ), pattern = paste0("z", ., ".png") , full.names = TRUE, recursive = TRUE)))
         map(list_png, ~file.copy(from = ., to = file.path(path_dir_pred, "to_pred")))
 
-        model <- load_model_hdf5(list.files(file.path(path_data, "models/2_class_irm"), pattern = ".h5", full.names = TRUE))
-
-        image_generator <- image_data_generator(rescale=1/255)
-        image_test <- flow_images_from_directory(
-          path_dir_pred,
-          image_generator,
-          shuffle = FALSE,
-          target_size = c(160, 224),
-          color_mode = "rgb",
-          class_mode = "binary",
-          batch_size = 1
-        )
-
-        image_shape <- c(160L, 224L, 3L)
+        ### launch prev python ###
         setProgress(value = 0.6 , message = "Prévision..")
 
-        pred <- predict_generator(
-          model,
-          image_test,
-          steps =  length(list_png),
-          verbose = 1)
-
+        reticulate::source_python(file.path(path_root, "inst/python/launch_2_class_pred.py"), envir = parent.frame(), convert = TRUE)
+        pred <- read.csv2(file.path(path_data, "models/2_class_irm/prev.csv"), header = FALSE, sep = "," , dec = ".")
+        pred <- as.matrix(pred)
         mean_pred <- mean(pred)
 
         if (mean_pred > 0.5) {
